@@ -183,32 +183,61 @@ Concretely:
 
 - `h8 #53 = 1100` is arrived at via `+53`, a **level** move into a ground square. Its predecessor
   `#52` must be a ground knight-neighbour of `h8`, and there are exactly two: **`f7` and `g6`**.
-- Moves 21 through 23 jump from tower to tower to tower.  There are only a few valid ways in the grid to do this: `c4▲ #21` → `e5▲ #22` → `f7▲/g6▲ #23`, or `g2▲ #21` → `h4▲ #22` → `f7▲/g6▲ #23`.  Note that both end on either `f7` or `g6`.
+- Moves 21 through 23 jump from tower to tower to tower.  There are only a few valid ways in the grid to do this: `c4▲ #21` → `e5▲ #22` → `f7▲/g6▲ #23`, or `g2▲ #21` → `h4▲ #22` → `f7▲/g6▲ #23`.  Note that both end on either `f7` or `g6`.  (There is a third family, `h7▲/g5▲/h3▲`, which is the one exception — it doesn't end on `f7` or `g6`, and I kill it separately below.)
 - So `#23` ∈ {`f7▲`, `g6▲`} — region **Z**'s tower — and `#52` ∈ {`f7`, `g6`} on the ground.
   They are different squares, so **the path consumes both**.
 
-> **[AI note — the argument has a gap, though the conclusion is right]** I enumerated every
-> legal `d3 #18` → `f6 #25` chain against the board at this stage: **16 of them survive
-> geometry**, falling into three region-triples, not two. You list `N,O,Z` (`c4`→`e5`→`f7`/`g6`)
-> and `L,W,Z` (`g2`→`h4`→`f7`/`g6`), but there is a third:
+### The third family, and why it dies
+
+There is a third way to place the three towers that I missed on the first pass, and it has to
+be dealt with or the argument above isn't complete. Enumerating every legal `d3 #18` → `f6 #25`
+chain, **16 survive**, in three region-triples rather than two:
+
+| towers at `#21 #22 #23` | regions | ends on |
+|---|---|---|
+| `c4▲ → e5▲ → f7▲/g6▲` | N, O, Z | `f7` or `g6` |
+| `g2▲ → h4▲ → f7▲/g6▲` | W, L, Z | `f7` or `g6` |
+| **`h7▲ → g5▲ → h3▲`** (and its mirror `h3▲ → g5▲ → h7▲`) | **V, Z, L** | `h3` or `h7` |
+
+That third family is the awkward one: Z's tower is `g5`, and `#23` lands on `h3` or `h7`, so
+"both end on `f7` or `g6`" isn't true of it. Here is why it can't happen.
+
+In this family `h3` is a tower (it's region L's). Now look at `f3 #32 = 272`, which climbs on
+`×33`. Its tower must be a straight-2 neighbour of `f3` — `f5`, `f1` or `h3` (`d3` is already
+used at `#18`). `f5` is region **F**, whose tower is `e3`, and `h3` is spent by this very
+family. **So `#33` must be `f1`, region W's tower.**
+
+That accounts for eleven regions: the seven known ones, plus V, Z, L at `#21`–`#23`, plus W at
+`#33`. Only **N** and **O** are left, so the tower at `#30` must be in one of them.
+
+Now work backwards into `f3`. `#32` is `+32`, a level knight move, so `#31` is a knight's move
+from `f3`. And `#31` is `÷31`, a drop, so `#31` is a straight-2 neighbour of the `#30` tower.
+Chaining those, only three approaches exist anywhere on the board:
+
+| `#30` tower | `÷31` lands on | `+32` reaches `f3`? |
+|---|---|---|
+| `e5▲`[O] | `g5` | **blocked — `g5` is this family's Z tower, so it can't be stood on at ground level** |
+| `c5▲`[N] | `e5` | only if `e5` is free |
+| `d4▲`[O] | `d2` | — |
+
+The `g5` collision is the satisfying one: the very tower placement that defines this family is
+what blocks its own route into `272`. In the `h7▲ #21` chain it kills two of the three at once,
+because that chain also uses `e5` as the ground square at `#19`, so `c5▲ → e5` is a revisit.
+
+> **[AI note — this closes most of it, but not all]** I verified every step above and the
+> framework holds: `#33 = f1` is forced, N/O is forced, and the three approaches are exactly
+> right. The `g5` collision kills the `e5▲` route in **both** chains, and in the `h7▲ #21` chain
+> the `e5`-at-`#19` clash kills `c5▲ → e5` as well.
 >
-> - `d3 → e5 → f7 → h7▲[V] → g5▲[Z] → h3▲[L] → h5 → f6`
-> - `d3 → f2 → h1 → h3▲[L] → g5▲[Z] → h7▲[V] → h5 → f6`
+> What it doesn't reach is **`d4▲ → d2`** (alive in both chains) and **`c5▲ → e5`** in the
+> `h3▲ #21` chain. Those two are genuinely dead, but they don't die here — I traced them and
+> they survive until **`#47`–`#51`**, where the run from `b3 #46` to `h8 #53` simply runs out of
+> unused squares. That isn't findable by hand at this stage.
 >
-> In those, Z's tower is `g5`, and `#23` is `h3` or `h7` — *not* `f7` or `g6`. So "both end on
-> either `f7` or `g6`" isn't established yet, and neither is "the path consumes both".
->
-> The family is genuinely dead, so your conclusion stands — but by the `#54` argument, not this
-> one: `#54` must be `×54` out of `h8`, whose only straight-2 neighbours are `f8` (used at `#15`)
-> and `h6`. So `h6` must be a tower, so **V's tower is `h6`** — which forbids `h7▲`, killing
-> both chains above.
->
-> ⚠ **Careful about ordering.** As written, you derive `h6▲` *from* "`f7` and `g6` are both
-> consumed", which is what you're trying to prove. If you use `h6▲` to kill the `V` family,
-> that's circular. The fix is to establish `h6▲` first and independently — it only needs
-> "one tower is still unplaced after `#53`, and `f8` is already used" — then use it to prune,
-> then run your `f7`/`g6` argument. Your call whether to restructure or just add a line
-> acknowledging the third family and pointing at `#54`.
+> So this section legitimately narrows the third family from six routes to two; the last two
+> rest on search. Worth saying so outright rather than claiming a complete kill — and it doesn't
+> cost anything, because the conclusion is confirmed either way: `h6▲ #54` is forced even when
+> nothing at all is assumed past `#53`.
 
 **Key takeaway: no other part of the path can contain `f7` or `g6`.**
 
