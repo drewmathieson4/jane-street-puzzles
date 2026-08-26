@@ -187,57 +187,36 @@ Concretely:
 - So `#23` ∈ {`f7▲`, `g6▲`} — region **Z**'s tower — and `#52` ∈ {`f7`, `g6`} on the ground.
   They are different squares, so **the path consumes both**.
 
-### The third family, and why it dies
+### Caveat: I missed a third family here
 
-There is a third way to place the three towers that I missed on the first pass, and it has to
-be dealt with or the argument above isn't complete. Enumerating every legal `d3 #18` → `f6 #25`
-chain, **16 survive**, in three region-triples rather than two:
+Being honest about how this actually went — when I solved it I only found the two families
+above. There is a third. Enumerating every legal `d3 #18` → `f6 #25` chain gives **16
+survivors**, in three region-triples rather than two:
 
 | towers at `#21 #22 #23` | regions | ends on |
 |---|---|---|
 | `c4▲ → e5▲ → f7▲/g6▲` | N, O, Z | `f7` or `g6` |
 | `g2▲ → h4▲ → f7▲/g6▲` | W, L, Z | `f7` or `g6` |
-| **`h7▲ → g5▲ → h3▲`** (and its mirror `h3▲ → g5▲ → h7▲`) | **V, Z, L** | `h3` or `h7` |
+| **`h7▲ → g5▲ → h3▲`** (and its mirror) | **V, Z, L** | `h3` or `h7` |
 
-That third family is the awkward one: Z's tower is `g5`, and `#23` lands on `h3` or `h7`, so
-"both end on `f7` or `g6`" isn't true of it. Here is why it can't happen.
+In that third one Z's tower is `g5` and `#23` lands on `h3` or `h7`, so "both end on `f7` or
+`g6`" isn't true of it, and the `f7`/`g6` argument below doesn't cover it. My solution came out
+of the two families I *did* consider and turned out to be the right one — but that was partly
+luck, because nothing I argue here rules the third one out.
 
-In this family `h3` is a tower (it's region L's). Now look at `f3 #32 = 272`, which climbs on
-`×33`. Its tower must be a straight-2 neighbour of `f3` — `f5`, `f1` or `h3` (`d3` is already
-used at `#18`). `f5` is region **F**, whose tower is `e3`, and `h3` is spent by this very
-family. **So `#33` must be `f1`, region W's tower.**
+Once I knew it existed I went looking for a clean way to kill it by hand. The closest I got is
+genuinely nice: in that family `h3` is L's tower, so the `×33` climb out of `f3` has to land on
+`f1`, which leaves only N and O for the `#30` tower — and of the three ways a tower in N or O
+can drop into a knight's move of `f3`, the best one is blocked because `g5` is that family's own
+Z tower and can't be stood on at ground level. That kills some of it, but not all: `d4▲ → d2`
+survives, and so does `c5▲ → e5` in one of the two chains.
 
-That accounts for eleven regions: the seven known ones, plus V, Z, L at `#21`–`#23`, plus W at
-`#33`. Only **N** and **O** are left, so the tower at `#30` must be in one of them.
+**The only way I found to finish it off was a tree search, which I handed to AI.** Those last
+routes do die — they just die at moves `#47`–`#51`, where the stretch from `b3 #46` to
+`h8 #53` runs out of unused squares. That is not something I was going to find by hand.
 
-Now work backwards into `f3`. `#32` is `+32`, a level knight move, so `#31` is a knight's move
-from `f3`. And `#31` is `÷31`, a drop, so `#31` is a straight-2 neighbour of the `#30` tower.
-Chaining those, only three approaches exist anywhere on the board:
-
-| `#30` tower | `÷31` lands on | `+32` reaches `f3`? |
-|---|---|---|
-| `e5▲`[O] | `g5` | **blocked — `g5` is this family's Z tower, so it can't be stood on at ground level** |
-| `c5▲`[N] | `e5` | only if `e5` is free |
-| `d4▲`[O] | `d2` | — |
-
-The `g5` collision is the satisfying one: the very tower placement that defines this family is
-what blocks its own route into `272`. In the `h7▲ #21` chain it kills two of the three at once,
-because that chain also uses `e5` as the ground square at `#19`, so `c5▲ → e5` is a revisit.
-
-> **[AI note — this closes most of it, but not all]** I verified every step above and the
-> framework holds: `#33 = f1` is forced, N/O is forced, and the three approaches are exactly
-> right. The `g5` collision kills the `e5▲` route in **both** chains, and in the `h7▲ #21` chain
-> the `e5`-at-`#19` clash kills `c5▲ → e5` as well.
->
-> What it doesn't reach is **`d4▲ → d2`** (alive in both chains) and **`c5▲ → e5`** in the
-> `h3▲ #21` chain. Those two are genuinely dead, but they don't die here — I traced them and
-> they survive until **`#47`–`#51`**, where the run from `b3 #46` to `h8 #53` simply runs out of
-> unused squares. That isn't findable by hand at this stage.
->
-> So this section legitimately narrows the third family from six routes to two; the last two
-> rest on search. Worth saying so outright rather than claiming a complete kill — and it doesn't
-> cost anything, because the conclusion is confirmed either way: `h6▲ #54` is forced even when
-> nothing at all is assumed past `#53`.
+Worth noting the conclusion never actually depended on this: `h6▲ #54` is forced even when
+nothing whatsoever is assumed past `#53`.
 
 **Key takeaway: no other part of the path can contain `f7` or `g6`.**
 
@@ -269,26 +248,29 @@ Moreover, the only valid location to jump up to `c4` from is `a4`, which determi
 
 ![After crux 2](SS9.png)
 
-## Crux 3: how does `h8` work backwards to `b3`?
+## Endgame: I gave it to AI
 
-> **[AI note — unfinished]** This section is still an empty heading. From the transcript, this
-> is the stretch you described as the second bifurcation: `#47`–`#53` is seven consecutive
-> level moves (`750 + 47 + … + 53 = 1100`), so all eight squares from `b3 #46` to `h8 #53` are
-> on the ground, and `#52` is `f7` or `g6`. Happy to draft it from the recording if you want.
+The natural next place to look was which tower did the `f3 #32 = 272` jump up to.  The only two
+candidates are `f1` and `h3`.
 
-## Endgame
+I worked on the rest for a long time — the stretch from `b3 #46` backwards to `b4 #39`, and the
+seven level moves running out to `h8 #53` — and kept getting to the point where I had two
+plausible branches and no clean way to choose between them. Eventually I just handed it to AI
+to solve.
 
-The natural next place to look was which tower did the `f3 #32 = 272` jump up to.  The only two candidates are `f1` and `h3`.
+I don't feel bad about that, because by then the problem space was *deeply* restricted, and
+restricting it was the actual work:
 
-> **[AI note — unfinished]** This stops mid-thought. For the record the resolution is `h3`,
-> and the reason is a clean one worth writing up: **`e1` and `f1` are both in region W**, so at
-> most one of them can be a tower. W's tower is needed for `#30` (`e1▲ #30 = 7440`), which
-> leaves `h3▲[L]` as the only option for `#33` — then `÷34` gives `h5 #34 = 264`.
->
-> I confirmed by search that forcing `#33 = f1` has no completion and `#33 = h3` does, but I
-> have *not* reconstructed the by-hand argument that pins W's tower to `e1` rather than `f1` at
-> this stage — `e1`'s up-approaches are `e3` (used at `#2`), `c1` and `g1`, so there's still a
-> choice there. If you remember how you closed it, that's the missing line.
+- all twelve clue cells placed, at known move numbers, with `K = 7`
+- every score from `#0` to `#53` pinned — each gap between checkpoints has exactly **one**
+  arithmetic route, so the numbers were completely determined
+- therefore every altitude known too, so the towers sat at `#0 #1 #2 #7 #12 #13 #14 #21 #22
+  #23 #30 #33` and one more after `#53`
+- nine of the thirteen towers already located, and most of the board greyed out as no-tower
+
+All that was left was choosing 31 squares whose move types were already fixed. The search ran
+in about **20 milliseconds** and came back with exactly one answer — which is a decent sign the
+deductions above had done their job.
 
 ---
 
@@ -377,10 +359,11 @@ Built along the way, all self-contained HTML in this directory:
   number of moves, or chain clue values checkpoint to checkpoint. This is what found `K = 7`.
 - **[`print-grids.html`](print-grids.html)** — blank grids, four to a page.
 
-Neither tool solves anything: they answer *"is this legal, and what does it score"*, never
-*"what should I play next"*. The deductions above — the forced opening, `K = 7`, the tower
-placements, the `g6` elimination — were all made by hand. Once those pinned every score and
-altitude, filling in the last 31 squares was a mechanical search with a unique answer.
+Neither of those tools solves anything: they answer *"is this legal, and what does it score"*,
+never *"what should I play next"*. The deductions above — the forced opening, `K = 7`, the
+`f7`/`g6` squeeze, most of the tower placements — were made by hand with the sandbox doing the
+bookkeeping. The two places I handed over to a genuine search are both flagged where they
+happen: killing the last routes of the third tower family, and the endgame fill.
 
 ## Verification
 
