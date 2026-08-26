@@ -20,6 +20,7 @@ storage on `file://` — either use **Export** to save by hand, or serve the fol
 | Towers | `t` | Left-click toggles a tower. |
 | Path   | `p` | Click a coloured dot to move the knight there. |
 | Probe  | `b` | Inspect any square's reach without touching your work. |
+| Erase  | `e` | Click a placed square to remove it. |
 
 **Right-click any square** to cycle it `? maybe` → `✗ no tower` (drawn with a grey hatch) →
 clear. The tower tracker then shows how many cells each region has left open.
@@ -27,10 +28,10 @@ clear. The tower tracker then shows how many cells each region has left open.
 
 ## Keys
 
-    ⌘Z / ⌘⇧Z    undo / redo (everything, not just moves)
-    Backspace   drop the last move off the active segment
-    r           flip between Forward and Backward
-    t / p / b   switch mode
+    ⌘Z / ⌘⇧Z        undo / redo (everything, not just moves)
+    Backspace       drop the last move off the active segment
+    r               flip between Forward and Backward
+    t / p / b / e   switch mode
 
 ## Segments — working from a move you already know
 
@@ -46,6 +47,21 @@ can't be verified and scores show as `?`.
 - Every segment renders on the board with its own colour stripe and real move numbers.
 - Overlaps are flagged: the same square in two segments, or two segments claiming one move.
 - Once segments join up, delete the spare and the trunk carries the whole path.
+
+## Removing things
+
+- **Erase mode** (`e`) — click any placed square to remove just that one. At either end of a
+  run it simply shortens; erase the anchor and the run re-anchors forward, picking up the new
+  first square's clue value as its entry score if it has one. Erase from the **middle** and the
+  run **splits in two**, with the tail becoming its own segment that keeps its real move
+  numbers. To drop everything *after* a move instead, click that row in the move log.
+- Squares that sit past a break in their run are drawn with a **red dashed outline and `#N?`**,
+  so an orphaned tail is visible and can be erased rather than being invisible.
+- **clear** on a segment row resets it to its anchor square, keeping the segment. **✕** deletes
+  a segment outright. **Clear all path work** returns to just a1 while keeping towers and marks.
+- **clear all** on the pins card drops every pin.
+- a1 at move 0 is the fixed start and can't be erased; locked moves are protected until you
+  unlock. Both say so rather than failing silently, and every removal is undoable with ⌘Z.
 
 ## The rest
 
@@ -108,9 +124,10 @@ realisable as knight moves. Check it in the sandbox.
 
 ## Self-tests
 
-In the sandbox, run `kmTests(true)` in the console — 27 checks covering the board extraction,
+In the sandbox, run `kmTests(true)` in the console — 42 checks covering the board extraction,
 move generation, altitude rules, the divisibility gate, forward and inverse scoring, segment
-anchoring, unknown entry scores, and conflict detection.
+anchoring, unknown entry scores, conflict detection, and erasing (end, anchor, middle-split,
+lone anchor, and the a1 and lock guards).
 
 In score paths, press **run self-tests** (or call `spTests(true)`) — 38 checks. They include
 exhaustive sweeps proving backward is the exact inverse of forward and that no backward step

@@ -44,6 +44,7 @@ input,select,textarea{font:inherit;border:1px solid var(--line);border-radius:6p
 
 .strip{border-radius:9px;padding:9px 12px;margin:8px 16px 0;display:none}
 .strip.show{display:block}
+#flash.show{display:block}
 #banner{background:#fff1f0;border:1px solid #f3b3ad;color:#8a1c14;
   align-items:center;gap:12px}
 #banner.show{display:flex}
@@ -92,6 +93,7 @@ svg{display:block}
     <button data-mode="tower">Towers</button>
     <button data-mode="path">Path</button>
     <button data-mode="probe">Probe</button>
+    <button data-mode="erase">Erase</button>
   </div>
   <div class="seg" id="dirs">
     <button data-dir="fwd">Forward &rarr;</button>
@@ -127,6 +129,7 @@ svg{display:block}
   Autosave is unavailable here, so work will be lost on reload. Use <b>Export / Import</b>,
   or serve the folder: <code>python3 -m http.server 8731</code> then open
   <code>http://127.0.0.1:8731/knight-sandbox.html</code>.</div>
+<div id="flash" class="strip" style="background:#eef2ff;border:1px solid #c7d2fe;color:#3730a3"></div>
 <div id="conflict" class="strip"></div>
 <div id="banner" class="strip"><span id="bannerText"></span><button id="truncBtn">Truncate here</button></div>
 
@@ -493,6 +496,19 @@ function drawBoard(){
         fill="#6b7280">start</text>`);
   }
 
+  // Squares sitting past a break in their segment. EV.occ only holds each segment's
+  // valid prefix, so without this they would be invisible — and unerasable.
+  S.segs.forEach((sg, si) => {
+    const e = EV.segs[si];
+    for (let k = e.okLen + 1; k < sg.cells.length; k++){
+      const c = sg.cells[k], x = M + (c%8)*CS, y = M + Math.floor(c/8)*CS;
+      P.push(`<rect x="${x+5}" y="${y+5}" width="${CS-10}" height="${CS-10}" rx="5" fill="none"
+        stroke="#dc2626" stroke-width="2" stroke-dasharray="5 4" stroke-opacity=".65"/>`);
+      P.push(`<text x="${x+CS/2}" y="${y+CS/2+7}" font-size="16" font-weight="700"
+        text-anchor="middle" fill="#dc2626" fill-opacity=".6">#${sg.start+k}?</text>`);
+    }
+  });
+
   for (let r=0;r<8;r++) for(let c=0;c<8;c++){
     const i=r*8+c, x=M+c*CS, y=M+r*CS;
     if (c<7) P.push(line(x+CS,y,x+CS,y+CS, REGION[i]!==REGION[i+1]));
@@ -645,7 +661,10 @@ function drawSegs(){
       <td class="mono">#${sg.start}–#${last}</td>
       <td class="mono">${nameOf(sg.cells[0])}→${nameOf(sg.cells[e.okLen])}</td>
       <td class="mono ${sg.entry===null?'mut':''}">${sg.entry===null?'score ?':sg.entry}</td>
-      <td>${si===0?'':`<button class="sm" data-delseg="${si}">✕</button>`}</td></tr>`;
+      <td style="white-space:nowrap">
+        <button class="sm" data-clearseg="${si}" title="reset to its anchor square">clear</button>
+        ${si===0?'':`<button class="sm" data-delseg="${si}" title="delete this segment">✕</button>`}
+        </td></tr>`;
   }).join('');
   const sg = seg(), known = CLUE[sg.cells[0]] !== undefined;
   $('segCard').innerHTML = `<h2>Segments
@@ -656,6 +675,8 @@ function drawSegs(){
       <input id="segCell" placeholder="cell" style="width:64px">
       <input id="segMove" type="number" min="1" max="63" placeholder="move #" style="width:82px">
       <button id="segAdd">Add segment</button>
+      <span style="flex:1"></span>
+      <button id="clearPath" title="back to just a1, keeping towers and marks">Clear all path work</button>
     </div>
     <div style="margin-top:8px;display:flex;gap:6px;align-items:center;flex-wrap:wrap">
       <span class="mut">segment ${S.active===0?'trunk':'#'+S.active} entry score:</span>
@@ -779,10 +800,12 @@ function drawPins(){
   }).join('');
   $('pinCard').innerHTML = `<h2>Pins <span class="mut">(shift-click a square to fill)</span></h2>
     ${rows?`<table><tbody>${rows}</tbody></table>`:'<div class="mut">No pins yet.</div>'}
-    <div style="margin-top:9px;display:flex;gap:6px">
+    <div style="margin-top:9px;display:flex;gap:6px;align-items:center">
       <input id="pinCell" placeholder="cell e.g. f6" style="width:92px">
       <input id="pinMove" type="number" min="0" max="63" placeholder="move #" style="width:88px">
-      <button id="pinAdd">Add pin</button></div>`;
+      <button id="pinAdd">Add pin</button>
+      <span style="flex:1"></span>
+      ${S.pins.length?'<button class="sm" id="pinClear">clear all</button>':''}</div>`;
 }
 
 function drawAnswer(){
@@ -822,6 +845,9 @@ const HINTS = {
        + '<b>Backward</b> to work back from a known landing square. Add a segment below to '
        + 'start from a move you already know.',
   probe: '<b>Probe:</b> click any square to inspect what it can reach. Nothing is changed.',
+  erase: '<b>Erase:</b> click a placed square to remove it. Removing one from the middle of a run '
+       + 'splits it in two, and the tail keeps its real move numbers. To drop everything after a '
+       + 'move instead, click that row in the move log.',
 };
 
 function render(){
@@ -870,6 +896,69 @@ board.addEventListener('contextmenu', e => {
   render();
 });
 
+/* Find a square anywhere in the segments, including past a break (EV.occ only
+   holds the valid prefix, so a broken tail would otherwise be unreachable). */
+function locate(i){
+  for (let si = 0; si < S.segs.length; si++){
+    const k = S.segs[si].cells.indexOf(i);
+    if (k >= 0) return {si, k, move: S.segs[si].start + k};
+  }
+  return null;
+}
+
+function entryFor(cell){ return CLUE[cell] !== undefined ? String(CLUE[cell]) : null; }
+
+/* Remove one square. Ends of a segment just shrink it; a square in the middle
+   splits the segment, and the tail keeps its real move numbers as a new one. */
+function eraseCell(i){
+  const loc = locate(i);
+  if (!loc){ flash('Nothing is placed on ' + nameOf(i) + '.'); return; }
+  const {si, k, move} = loc, sg = S.segs[si];
+  if (si === 0 && k === 0){ flash('a1 at move 0 is the fixed start — it can\'t be erased.'); return; }
+  if (si === 0 && move <= S.lock){ flash('Move #' + move + ' is locked. Unlock first.'); return; }
+
+  snapshot();
+  if (sg.cells.length === 1){ S.segs.splice(si, 1); }         // anchor-only segment
+  else if (k === sg.cells.length - 1){ sg.cells.pop(); }      // last
+  else if (k === 0){                                          // first: re-anchor forward
+    sg.cells.shift(); sg.start += 1; sg.entry = entryFor(sg.cells[0]);
+  } else {                                                    // middle: split
+    const tail = sg.cells.slice(k + 1);
+    sg.cells = sg.cells.slice(0, k);
+    S.segs.push({start: move + 1, cells: tail, entry: entryFor(tail[0])});
+  }
+  if (S.active >= S.segs.length) S.active = S.segs.length - 1;
+  render();
+}
+
+/* Reset a segment to its anchor square, keeping the segment itself. */
+function clearSeg(si){
+  const sg = S.segs[si];
+  if (si === 0 && S.lock){ flash('The trunk is locked through #' + S.lock + '. Unlock first.'); return; }
+  if (sg.cells.length <= 1) return;
+  snapshot(); sg.cells = [sg.cells[0]]; render();
+}
+
+function deleteSeg(si){
+  if (si === 0){ clearSeg(0); return; }
+  snapshot(); S.segs.splice(si, 1);
+  if (S.active >= S.segs.length) S.active = S.segs.length - 1;
+  render();
+}
+
+function clearAllPath(){
+  if (S.lock){ flash('Unlock the trunk first.'); return; }
+  snapshot();
+  S.segs = [{start:0, cells:[START], entry:'0'}];
+  S.active = 0; S.dir = 'fwd'; render();
+}
+
+let flashT = null;
+function flash(msg){
+  const el = $('flash'); el.textContent = msg; el.classList.add('show');
+  clearTimeout(flashT); flashT = setTimeout(()=>el.classList.remove('show'), 3200);
+}
+
 function extend(to){
   const sg = seg();
   snapshot();
@@ -893,6 +982,7 @@ board.addEventListener('click', e => {
   const i = +hit.dataset.i;
   if (e.shiftKey){ const f=$('pinCell'); if(f){ f.value = nameOf(i); $('pinMove').focus(); } return; }
   if (mode === 'probe'){ probeCell = i; render(); return; }
+  if (mode === 'erase'){ eraseCell(i); return; }
   if (mode === 'tower'){
     snapshot();
     const k = S.towers.indexOf(i);
@@ -913,6 +1003,15 @@ board.addEventListener('mousemove', e => {
     S.towers.includes(i)?' · <b>tower</b>':''}${S.marks[i]==='out'?' · marked no-tower':''}`];
   if (CLUE[i]!==undefined) bits.push(`clue ${CLUE[i]}`);
   const o = EV.occ.get(i); if (o) bits.push(`move #${o.move} · score ${fmt(o.score)}`);
+  if (mode === 'erase'){
+    const loc = locate(i);
+    if (!loc) bits.push('<span style="opacity:.7">nothing placed here</span>');
+    else if (loc.si===0 && loc.k===0) bits.push('the fixed start — cannot erase');
+    else {
+      const sg = S.segs[loc.si], mid = loc.k>0 && loc.k<sg.cells.length-1;
+      bits.push(`click to erase #${loc.move}${mid?' — splits the run in two':''}`);
+    }
+  }
   if (mv && mode!=='tower'){
     if (mv.ok) bits.push(mode==='probe' ? `${mv.type} move`
       : `${mv.type} · ${S.dir==='back'?'before':'after'} move ${head().N} → score <b>${fmt(mv.newScore)}</b>`);
@@ -927,11 +1026,17 @@ document.addEventListener('click', e => {
   if (go && +go.dataset.ok===1 && mode!=='probe'){ extend(+go.dataset.go); return; }
 
   const sel = e.target.closest('[data-seg]');
-  if (sel && !e.target.closest('[data-delseg]')){ S.active = +sel.dataset.seg; render(); return; }
+  if (sel && !e.target.closest('[data-delseg]') && !e.target.closest('[data-clearseg]')){
+    S.active = +sel.dataset.seg; render(); return; }
 
   const del = e.target.closest('[data-delseg]');
-  if (del){ snapshot(); S.segs.splice(+del.dataset.delseg,1);
-            if (S.active>=S.segs.length) S.active=S.segs.length-1; render(); return; }
+  if (del){ deleteSeg(+del.dataset.delseg); return; }
+
+  const clr = e.target.closest('[data-clearseg]');
+  if (clr){ clearSeg(+clr.dataset.clearseg); return; }
+
+  if (e.target.id === 'clearPath'){ clearAllPath(); return; }
+  if (e.target.id === 'pinClear'){ snapshot(); S.pins = []; render(); return; }
 
   const rew = e.target.closest('[data-rew]');
   if (rew){
@@ -1033,7 +1138,7 @@ document.addEventListener('keydown', e => {
     (e.shiftKey ? $('redo') : $('undo')).click(); return; }
   if (e.key === 'Backspace'){ e.preventDefault(); $('stepBack').click(); return; }
   if (e.key.toLowerCase() === 'r'){ S.dir = S.dir==='fwd'?'back':'fwd'; render(); return; }
-  const k = {t:'tower', p:'path', b:'probe'}[e.key.toLowerCase()];
+  const k = {t:'tower', p:'path', b:'probe', e:'erase'}[e.key.toLowerCase()];
   if (k){ mode = k; [...$('modes').children].forEach(x=>x.classList.toggle('on',x.dataset.mode===mode)); render(); }
 });
 
@@ -1185,6 +1290,64 @@ function kmTests(verbose){
   S.segs=[{start:0,cells:[START],entry:'0'},{start:0,cells:[idxOf('h8')],entry:null}];
   EV=evaluate();
   t('same move number twice is flagged', EV.conflicts.some(c=>/is .* in one segment/.test(c)));
+
+  // ---- erase: ends shrink, middles split ----
+  const mk = (start, names, entry) => ({start, cells:names.map(idxOf), entry});
+  const setSegs = (arr, act=0) => { S.segs = arr; S.active = act; S.lock = 0; EV = evaluate(); };
+
+  S.towers = [];
+  setSegs([mk(0, ['a1','c2','a3','b5','a7'], '0')]);
+  eraseCell(idxOf('a7'));
+  t('erasing the last square shortens the run',
+    S.segs.length===1 && S.segs[0].cells.length===4 && S.segs[0].start===0);
+
+  setSegs([mk(0,['a1','c2','a3'],'0'), mk(18,['f6','h5','g7'],'138')], 1);
+  eraseCell(idxOf('f6'));
+  t('erasing an anchor re-anchors forward',
+    S.segs[1].start===19 && nameOf(S.segs[1].cells[0])==='h5' && S.segs[1].cells.length===2);
+  t('re-anchored entry is unknown when the new anchor is not a clue', S.segs[1].entry===null);
+
+  setSegs([mk(0,['a1','c2','a3'],'0'), mk(17,['h5','f6','g7'],null)], 1);
+  eraseCell(idxOf('h5'));
+  t('re-anchoring onto a clue cell picks up its value', S.segs[1].entry==='138' && S.segs[1].start===18);
+
+  // middle square splits, and the tail keeps its true move numbers
+  setSegs([mk(0, ['a1','c2','a3','b5','a7','c8'], '0')]);
+  eraseCell(idxOf('b5'));
+  t('splitting leaves two segments', S.segs.length===2);
+  t('head keeps moves 0-2', S.segs[0].cells.map(nameOf).join()==='a1,c2,a3' && S.segs[0].start===0);
+  t('tail starts at move 4 with the right squares',
+    S.segs[1].start===4 && S.segs[1].cells.map(nameOf).join()==='a7,c8',
+    `start=${S.segs[1].start} cells=${S.segs[1].cells.map(nameOf).join()}`);
+  t('tail move numbers are unchanged by the split',
+    EV.occ.get(idxOf('c8')) ? EV.occ.get(idxOf('c8')).move===5 : false);
+
+  // guards
+  setSegs([mk(0,['a1','c2','a3'],'0')]);
+  const before = JSON.stringify(S.segs);
+  eraseCell(idxOf('a1'));
+  t('a1 at move 0 cannot be erased', JSON.stringify(S.segs)===before);
+  eraseCell(idxOf('h8'));
+  t('erasing an empty square does nothing', JSON.stringify(S.segs)===before);
+  S.lock = 2; eraseCell(idxOf('c2'));
+  t('a locked move is protected', JSON.stringify(S.segs)===before);
+  S.lock = 0;
+
+  // an anchor-only extra segment disappears entirely
+  setSegs([mk(0,['a1'],'0'), mk(9,['f6'],'138')], 1);
+  eraseCell(idxOf('f6'));
+  t('erasing a lone anchor deletes the segment', S.segs.length===1 && S.active===0);
+
+  // clear / delete
+  setSegs([mk(0,['a1','c2','a3'],'0'), mk(18,['f6','h5'],'138')], 0);
+  clearSeg(0);
+  t('clearing the trunk keeps a1 only', S.segs[0].cells.map(nameOf).join()==='a1' && S.segs.length===2);
+  deleteSeg(1);
+  t('deleting a segment removes it', S.segs.length===1);
+  setSegs([mk(0,['a1','c2'],'0'), mk(18,['f6'],'138')], 1);
+  clearAllPath();
+  t('clear-all leaves just the trunk at a1',
+    S.segs.length===1 && S.segs[0].cells.length===1 && S.active===0 && S.dir==='fwd');
 
   Object.assign(S, keep); S.active=keepA; S.dir=keepD; EV=evaluate();
   const fails = out.filter(o=>!o.pass);
