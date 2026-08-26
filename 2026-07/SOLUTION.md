@@ -310,3 +310,25 @@ For each unvisited square, sum the scores of its orthogonally adjacent squares t
 path; add those nine sums.
 
 ## **Answer: 33609**
+
+---
+
+## Tools
+
+Built along the way, all self-contained HTML in this directory:
+
+- **[`knight-sandbox.html`](knight-sandbox.html)** — the board. Place and remove towers, mark
+  squares `?` / `✗ no tower`, walk the knight with legal moves highlighted and the resulting
+  score previewed on hover. Runs can start anywhere, float without a move number until one is
+  known, be built forwards *or backwards* (inverting each operation), and join up when they
+  meet — sharing out their numbering.
+- **[`score-paths.html`](score-paths.html)** — pure score arithmetic, no board. Given a score,
+  a move number and an altitude, enumerate what is reachable, connect two scores in a fixed
+  number of moves, or chain clue values checkpoint to checkpoint. This is what found `K = 7`.
+- **[`print-grids.html`](print-grids.html)** — blank grids, four to a page.
+
+Neither of those tools solves anything: they answer *"is this legal, and what does it score"*,
+never *"what should I play next"*. The deductions above — the forced opening, `K = 7`, the
+`f7`/`g6` squeeze, most of the tower placements — were made by hand, with the sandbox doing the
+bookkeeping. The two places I handed over to a genuine search are both flagged where they
+happen: killing off the last routes of the third tower family, and the endgame fill.
