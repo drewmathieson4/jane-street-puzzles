@@ -298,7 +298,7 @@ function classify(from, to){
 
 /* forward: score after move N, given score before it */
 function applyScore(score, type, N){
-  if (score === null) return {score:null};
+  if (score === null || N === null) return {score:null};
   const n = BigInt(N);
   if (type==='level') return {score: score + n};
   if (type==='up')    return {score: score * n};
@@ -309,7 +309,7 @@ function applyScore(score, type, N){
 /* backward: score before move N, given the score after it. Lets you build away from a
    waypoint whose score you know (e.g. a clue cell at move 18) toward earlier moves. */
 function invScore(score, type, N){
-  if (score === null) return {score:null};
+  if (score === null || N === null) return {score:null};
   const n = BigInt(N);
   if (type==='level'){
     const p = score - n;
@@ -329,7 +329,8 @@ function evalSeg(sg){
   const types = [], seen = new Set([sg.cells[0]]);
   let broke = null;
   for (let k = 1; k < sg.cells.length; k++){
-    const from = sg.cells[k-1], to = sg.cells[k], N = sg.start + k;
+    const from = sg.cells[k-1], to = sg.cells[k];
+    const N = sg.start === null ? null : sg.start + k;
     if (seen.has(to)){ broke = {k, reason: nameOf(to)+' is already used in this segment'}; break; }
     const cl = classify(from, to);
     if (!cl.type){ broke = {k, reason: cl.reason}; break; }
@@ -347,13 +348,15 @@ function evaluate(){
   S.segs.forEach((sg, si) => {
     const e = segs[si];
     for (let k = 0; k <= e.okLen; k++){
-      const cell = sg.cells[k], move = sg.start + k;
+      const cell = sg.cells[k], move = sg.start === null ? null : sg.start + k;
       if (occ.has(cell) && occ.get(cell).si !== si)
         conflicts.push(`${nameOf(cell)} is claimed by segment #${occ.get(cell).si} and #${si}`);
       else occ.set(cell, {si, k, move, score: e.scores[k]});
-      if (byMove.has(move) && byMove.get(move) !== cell)
-        conflicts.push(`move #${move} is ${nameOf(byMove.get(move))} in one segment and ${nameOf(cell)} in another`);
-      else byMove.set(move, cell);
+      if (move !== null){
+        if (byMove.has(move) && byMove.get(move) !== cell)
+          conflicts.push(`move #${move} is ${nameOf(byMove.get(move))} in one segment and ${nameOf(cell)} in another`);
+        else byMove.set(move, cell);
+      }
     }
   });
   return {segs, occ, byMove, conflicts: [...new Set(conflicts)]};
@@ -400,12 +403,37 @@ let EV = evaluate();
 
 /* The growing end of the active segment, plus what the next move number and score are. */
 function head(){
-  const sg = seg(), e = EV.segs[S.active];
+  const sg = seg(), e = EV.segs[S.active], float = sg.start === null;
   if (S.dir === 'back')
-    return {from: sg.cells[0], N: sg.start, score: e.scores[0], atEnd:false};
-  return {from: sg.cells[e.okLen], N: sg.start + e.okLen + 1, score: e.scores[e.okLen], atEnd:true};
+    return {from: sg.cells[0], N: float ? null : sg.start, score: e.scores[0], atEnd:false};
+  return {from: sg.cells[e.okLen], N: float ? null : sg.start + e.okLen + 1,
+          score: e.scores[e.okLen], atEnd:true};
 }
-function canGoBack(){ return seg().start >= 1; }
+function canGoBack(){ const st = seg().start; return st === null || st >= 1; }
+
+/* Endpoints of other runs that this one is allowed to link onto. Going forward we
+   can land on another run's first square; going backward, on its last. Move numbers
+   only have to agree when both runs actually have them. */
+function linkTargets(){
+  const m = new Map();
+  if (mode !== 'path') return m;
+  const eA = EV.segs[S.active];
+  if (eA.broke) return m;
+  if (S.dir === 'back' && !canGoBack()) return m;
+  const h = head();
+  S.segs.forEach((B, bi) => {
+    if (bi === S.active || !B.cells.length) return;
+    const eB = EV.segs[bi];
+    if (S.dir === 'fwd'){
+      if (h.N !== null && B.start !== null && B.start !== h.N) return;
+      m.set(B.cells[0], bi);
+    } else {
+      if (h.N !== null && B.start !== null && B.start + eB.okLen !== h.N - 1) return;
+      m.set(B.cells[eB.okLen], bi);
+    }
+  });
+  return m;
+}
 
 function currentLegal(){
   if (mode === 'probe') return probeCell===null ? [] : probeFrom(probeCell);
@@ -413,8 +441,11 @@ function currentLegal(){
   if (e.broke) return [];
   if (S.dir === 'back' && !canGoBack()) return [];
   const h = head();
-  const seen = new Set(EV.occ.keys());
-  return legalFrom(h.from, h.score, h.N, seen, S.dir);
+  const links = linkTargets();
+  const seen = new Set([...EV.occ.keys()].filter(c => !links.has(c)));
+  const out = legalFrom(h.from, h.score, h.N, seen, S.dir);
+  out.forEach(m => { if (m.ok && links.has(m.to)) m.join = links.get(m.to); });
+  return out;
 }
 
 function trim(x1,y1,x2,y2,d){
@@ -466,8 +497,9 @@ function drawBoard(){
       const fs = sc.length > 6 ? 15 : sc.length > 4 ? 19 : 24;
       P.push(`<text x="${x+CS/2}" y="${y+CS/2+lifted+8}" font-size="${fs}" font-weight="700"
         text-anchor="middle" fill="${fill}" font-family="ui-monospace,Menlo,monospace">${sc}</text>`);
+      const mlab = o.move === null ? '+'+o.k : '#'+o.move;
       P.push(`<text x="${x+CS-6}" y="${y+16}" font-size="11.5" text-anchor="end"
-        fill="${S.segs.length>1?SEGC[o.si%SEGC.length]:'#374151'}" font-weight="650">#${o.move}</text>`);
+        fill="${S.segs.length>1?SEGC[o.si%SEGC.length]:'#374151'}" font-weight="650">${mlab}</text>`);
       if (S.segs.length > 1)
         P.push(`<rect x="${x+2}" y="${y+2}" width="4" height="${CS-4}" rx="2"
           fill="${SEGC[o.si%SEGC.length]}" fill-opacity=".8"/>`);
@@ -504,8 +536,9 @@ function drawBoard(){
       const c = sg.cells[k], x = M + (c%8)*CS, y = M + Math.floor(c/8)*CS;
       P.push(`<rect x="${x+5}" y="${y+5}" width="${CS-10}" height="${CS-10}" rx="5" fill="none"
         stroke="#dc2626" stroke-width="2" stroke-dasharray="5 4" stroke-opacity=".65"/>`);
+      const olab = sg.start === null ? '+'+k : '#'+(sg.start+k);
       P.push(`<text x="${x+CS/2}" y="${y+CS/2+7}" font-size="16" font-weight="700"
-        text-anchor="middle" fill="#dc2626" fill-opacity=".6">#${sg.start+k}?</text>`);
+        text-anchor="middle" fill="#dc2626" fill-opacity=".6">${olab}?</text>`);
     }
   });
 
@@ -552,7 +585,13 @@ function drawBoard(){
 
   for (const mv of currentLegal()){
     const X = cx(mv.to), Y = cy(mv.to);
-    if (mv.ok) P.push(`<circle cx="${X}" cy="${Y}" r="11" fill="${CLR[mv.type]}"
+    if (mv.ok && mv.join !== undefined){
+      P.push(`<circle cx="${X}" cy="${Y}" r="17" fill="none" stroke="${CLR[mv.type]}"
+        stroke-width="3"/>`);
+      P.push(`<circle cx="${X}" cy="${Y}" r="11" fill="${CLR[mv.type]}" fill-opacity=".9"
+        stroke="#fff" stroke-width="2"/>`);
+    }
+    else if (mv.ok) P.push(`<circle cx="${X}" cy="${Y}" r="11" fill="${CLR[mv.type]}"
       fill-opacity=".85" stroke="#fff" stroke-width="2"/>`);
     else P.push(`<circle cx="${X}" cy="${Y}" r="8" fill="none" stroke="#9ca3af"
       stroke-width="2" stroke-dasharray="3 3"/>`);
@@ -599,7 +638,7 @@ function drawStatus(){
     <div class="stat"><span>building ${S.dir==='back'?'backward from':'forward from'}</span>
       <b class="mono">${nameOf(h.from)}</b></div>
     <div class="stat"><span>next move is N =</span>
-      <b>${S.dir==='back' && !canGoBack() ? '—' : h.N}</b></div>
+      <b>${S.dir==='back' && !canGoBack() ? '—' : (h.N===null ? '? (run has no number)' : h.N)}</b></div>
     <div class="stat"><span>score there</span><b class="mono">${fmt(h.score)}</b></div>
     <hr class="s">
     <div class="stat"><span>squares placed</span><b>${cells.length}/64</b></div>
@@ -654,11 +693,13 @@ function scheduleHtml(){
 
 function drawSegs(){
   const rows = S.segs.map((sg, si) => {
-    const e = EV.segs[si], last = sg.start + e.okLen;
+    const e = EV.segs[si], float = sg.start === null;
+    const range = float ? `<span class="mut">no move #</span>`
+                        : `#${sg.start}–#${sg.start + e.okLen}`;
     return `<tr class="click ${si===S.active?'act':''}" data-seg="${si}">
       <td style="width:14px"><span class="dot" style="background:${SEGC[si%SEGC.length]}"></span></td>
       <td>${si===0?'<b>trunk</b>':'<b>#'+si+'</b>'}</td>
-      <td class="mono">#${sg.start}–#${last}</td>
+      <td class="mono">${range}</td>
       <td class="mono">${nameOf(sg.cells[0])}→${nameOf(sg.cells[e.okLen])}</td>
       <td class="mono ${sg.entry===null?'mut':''}">${sg.entry===null?'score ?':sg.entry}</td>
       <td style="white-space:nowrap">
@@ -673,21 +714,30 @@ function drawSegs(){
     <div style="margin-top:9px;display:flex;gap:6px;align-items:center;flex-wrap:wrap">
       <span class="mut">new:</span>
       <input id="segCell" placeholder="cell" style="width:64px">
-      <input id="segMove" type="number" min="1" max="63" placeholder="move #" style="width:82px">
+      <input id="segMove" type="number" min="1" max="63" placeholder="move # (opt)" style="width:104px">
       <button id="segAdd">Add segment</button>
       <span style="flex:1"></span>
       <button id="clearPath" title="back to just a1, keeping towers and marks">Clear all path work</button>
     </div>
     <div style="margin-top:8px;display:flex;gap:6px;align-items:center;flex-wrap:wrap">
-      <span class="mut">segment ${S.active===0?'trunk':'#'+S.active} entry score:</span>
+      <span class="mut">${S.active===0?'trunk':'#'+S.active} starts at move:</span>
+      <input id="segStart" type="number" min="0" max="63" style="width:82px"
+        value="${sg.start===null?'':sg.start}" placeholder="unknown">
+      <button id="segStartSet" class="sm">set</button>
+      ${sg.start!==null && S.active!==0 ? '<button id="segStartClear" class="sm">unset</button>' : ''}
+    </div>
+    <div style="margin-top:8px;display:flex;gap:6px;align-items:center;flex-wrap:wrap">
+      <span class="mut">entry score:</span>
       <input id="segEntry" value="${sg.entry===null?'':sg.entry}" placeholder="unknown"
         style="width:96px" ${S.active===0?'disabled':''}>
       <button id="segEntrySet" class="sm" ${S.active===0?'disabled':''}>set</button>
       ${known?'<span class="mut">(from the clue)</span>':''}
     </div>
-    <div class="mut" style="margin-top:6px;font-size:11.5px">Leave the entry score blank if you
-      don't know it — moves are still checked for shape and altitude, but ÷ moves can't be
-      verified and scores show as <b>?</b>.</div>`;
+    <div class="mut" style="margin-top:6px;font-size:11.5px">
+      Click any empty square in Path mode to start a run there. A run with no move number still
+      has its shape and altitude checked; scores stay <b>?</b> until it gets a number, either
+      set here or inherited by joining onto a numbered run. Path into another run's endpoint to
+      join them — those targets are drawn with a ring.</div>`;
 }
 
 function drawLegal(){
@@ -696,7 +746,7 @@ function drawLegal(){
   const where = mode==='probe' ? (probeCell===null?'—':nameOf(probeCell)) : nameOf(h.from);
   let html = `<h2>Legal from ${where}${
     mode==='probe' ? ' <span class="mut">(probe: geometry only)</span>'
-    : ` <span class="mut">· ${S.dir==='back'?'undoing':'move'} N=${h.N} · score ${fmt(h.score)}</span>`}</h2>`;
+    : ` <span class="mut">· ${S.dir==='back'?'undoing':'move'} N=${h.N===null?'?':h.N} · score ${fmt(h.score)}</span>`}</h2>`;
   if (mode==='probe' && probeCell===null) html += `<div class="mut">Click any square.</div>`;
   else if (EV.segs[S.active].broke) html += `<div class="warn">This segment is broken — fix it first.</div>`;
   else if (S.dir==='back' && !canGoBack()) html += `<div class="mut">This segment already starts at move 0.</div>`;
@@ -708,9 +758,12 @@ function drawLegal(){
         <td style="width:22px"><span class="dot" style="background:${col};${m.ok?'':'opacity:.35'}"></span></td>
         <td class="mono" style="width:34px"><b>${nameOf(m.to)}</b></td>
         <td style="width:52px" class="mut">${m.type||'—'}</td>
-        <td>${m.ok ? (m.newScore!==null ? `→ <b class="mono">${m.newScore}</b>`
-                                        : '<span class="mut">ok (score unknown)</span>')
-                   : `<span class="mut">✗ ${esc(m.reason)}</span>`}</td></tr>`;
+        <td>${m.ok
+          ? (m.join!==undefined
+              ? `<b style="color:var(--accent)">join ${S.segs[m.join].start===null?'floating run':'#'+S.segs[m.join].start}</b>`
+              : (m.newScore!==null ? `→ <b class="mono">${m.newScore}</b>`
+                                   : '<span class="mut">ok (score unknown)</span>'))
+          : `<span class="mut">✗ ${esc(m.reason)}</span>`}</td></tr>`;
     });
     html += `</tbody></table>`;
   }
@@ -722,22 +775,23 @@ function drawLog(){
   let html = `<h2>Move log — segment ${S.active===0?'trunk':'#'+S.active}
       <span class="mut">(click a row to cut back to it)</span></h2>
     <table><thead><tr><th>#</th><th>move</th><th>type</th><th>score</th><th></th></tr></thead><tbody>`;
-  html += `<tr><td>${sg.start}</td><td class="mono">${nameOf(sg.cells[0])}</td>
-    <td class="mut">${sg.start===0?'start':'anchor'}</td>
+  const lab = k => sg.start===null ? '+'+k : String(sg.start+k);
+  html += `<tr><td>${lab(0)}</td><td class="mono">${nameOf(sg.cells[0])}</td>
+    <td class="mut">${sg.start===0?'start':sg.start===null?'floating':'anchor'}</td>
     <td class="mono"><b>${fmt(e.scores[0])}</b></td><td></td></tr>`;
   for (let k=1; k<=e.okLen; k++){
-    const ty = e.types[k-1], mvNo = sg.start + k;
-    html += `<tr class="click" data-rew="${k}" data-t="${mvNo}">
-      <td>${mvNo}</td>
+    const ty = e.types[k-1], mvNo = sg.start===null ? null : sg.start + k;
+    html += `<tr class="click" data-rew="${k}" data-t="${mvNo===null?'':mvNo}">
+      <td>${lab(k)}</td>
       <td class="mono">${nameOf(sg.cells[k-1])}→<b>${nameOf(sg.cells[k])}</b></td>
       <td><span class="dot" style="background:${CLR[ty]}"></span>${ty}</td>
       <td class="mono"><b>${fmt(e.scores[k])}</b></td>
-      <td>${S.active===0&&mvNo<=S.lock?'🔒':''}${
+      <td>${S.active===0&&mvNo!==null&&mvNo<=S.lock?'🔒':''}${
         CLUE[sg.cells[k]]!==undefined && e.scores[k]!==null
           ? (BigInt(CLUE[sg.cells[k]])===e.scores[k]?' <span class="okc">✓clue</span>'
                                                     :' <span class="warn">✗clue</span>') : ''}</td></tr>`;
   }
-  if (e.broke) html += `<tr><td class="warn">${sg.start+e.broke.k}</td>
+  if (e.broke) html += `<tr><td class="warn">${lab(e.broke.k)}</td>
     <td class="mono warn">${nameOf(sg.cells[e.broke.k-1])}→${nameOf(sg.cells[e.broke.k])}</td>
     <td colspan="3" class="warn">${esc(e.broke.reason)}</td></tr>`;
   $('logCard').innerHTML = html + `</tbody></table>`;
@@ -841,9 +895,10 @@ function drawAnswer(){
 const HINTS = {
   tower: '<b>Towers:</b> left-click places or removes a tower · <b>right-click</b> marks a square '
        + '<b>? maybe</b> then <b>✗ no tower</b> (hatched) · shift-click pins a move number.',
-  path:  '<b>Path:</b> click a coloured dot to move. Use <b>Forward</b> to extend the head, '
-       + '<b>Backward</b> to work back from a known landing square. Add a segment below to '
-       + 'start from a move you already know.',
+  path:  '<b>Path:</b> click a coloured dot to move, or click any <b>empty square</b> to start a '
+       + 'new run there. A <b>ringed</b> dot is another run\'s endpoint — clicking it joins the two '
+       + 'and shares out the move numbers. <b>Forward</b> extends the head, <b>Backward</b> works '
+       + 'back from a known landing square.',
   probe: '<b>Probe:</b> click any square to inspect what it can reach. Nothing is changed.',
   erase: '<b>Erase:</b> click a placed square to remove it. Removing one from the middle of a run '
        + 'splits it in two, and the tail keeps its real move numbers. To drop everything after a '
@@ -861,7 +916,7 @@ function render(){
   const e = EV.segs[S.active];
   $('banner').classList.toggle('show', !!e.broke);
   if (e.broke) $('bannerText').innerHTML =
-    `Segment ${S.active===0?'trunk':'#'+S.active} breaks at move <b>#${seg().start+e.broke.k}</b>
+    `Segment ${S.active===0?'trunk':'#'+S.active} breaks at <b>${seg().start===null?'step +'+e.broke.k:'move #'+(seg().start+e.broke.k)}</b>
      (${nameOf(seg().cells[e.broke.k-1])}→${nameOf(seg().cells[e.broke.k])}):
      ${esc(e.broke.reason)}. Later moves in it are ignored.`;
   $('conflict').classList.toggle('show', EV.conflicts.length>0);
@@ -959,6 +1014,56 @@ function flash(msg){
   clearTimeout(flashT); flashT = setTimeout(()=>el.classList.remove('show'), 3200);
 }
 
+/* Click an empty square to begin a run there. It floats: no move number yet, so
+   shape and altitude are still checked but scores stay unknown until it is either
+   given a number or joined onto a run that has one. */
+function startSegmentAt(cell){
+  snapshot();
+  S.segs.push({start:null, cells:[cell], entry:null});
+  S.active = S.segs.length - 1;
+  S.dir = 'fwd';
+  flash('New run started at ' + nameOf(cell) + ' with no move number yet. Give it one in '
+      + 'Segments, or path into another run to join up and inherit its numbering.');
+  render();
+}
+
+/* Merge the active run with another at a shared endpoint. Whichever side already
+   has move numbers supplies them to the other. */
+function joinSeg(bi){
+  const A = seg(), B = S.segs[bi], eA = EV.segs[S.active];
+  snapshot();
+  let start;
+  if (S.dir === 'fwd'){
+    A.cells = A.cells.slice(0, eA.okLen + 1);
+    start = A.start;
+    if (start === null && B.start !== null) start = B.start - A.cells.length;
+    if (start !== null && start < 0){ undoStack.pop(); flash('That join would put a move before #0.'); return; }
+    A.cells = A.cells.concat(B.cells);
+  } else {
+    const p = B.cells.length;
+    start = B.start !== null ? B.start : (A.start !== null ? A.start - p : null);
+    if (start !== null && start < 0){ undoStack.pop(); flash('That join would put a move before #0.'); return; }
+    A.cells = B.cells.concat(A.cells);
+  }
+  A.start = start;
+  if (A.start !== null && A.entry === null) A.entry = entryFor(A.cells[0]);
+  S.segs.splice(bi, 1);
+  if (S.active > bi) S.active--;
+  flash('Runs joined' + (A.start !== null ? ' — moves #' + A.start + '–#' + (A.start + A.cells.length - 1) : '') + '.');
+  render();
+}
+
+/* Give a floating run a move number, or take one away. */
+function setSegStart(si, val){
+  const sg = S.segs[si];
+  if (val === null){ snapshot(); sg.start = null; sg.entry = null; render(); return; }
+  if (val < 0 || val + sg.cells.length - 1 > 63){ flash('Move numbers run from 0 to 63.'); return; }
+  if (si === 0 && val !== 0){ flash('The trunk starts on a1 at move 0.'); return; }
+  snapshot(); sg.start = val;
+  if (sg.entry === null) sg.entry = entryFor(sg.cells[0]);
+  render();
+}
+
 function extend(to){
   const sg = seg();
   snapshot();
@@ -992,7 +1097,8 @@ board.addEventListener('click', e => {
   }
   if (EV.segs[S.active].broke) return;
   const mv = currentLegal().find(m => m.to === i && m.ok);
-  if (mv) extend(i);
+  if (mv){ if (mv.join !== undefined) joinSeg(mv.join); else extend(i); return; }
+  if (!locate(i)) startSegmentAt(i);
 });
 
 board.addEventListener('mousemove', e => {
@@ -1023,7 +1129,11 @@ board.addEventListener('mouseleave', hideTip);
 
 document.addEventListener('click', e => {
   const go = e.target.closest('[data-go]');
-  if (go && +go.dataset.ok===1 && mode!=='probe'){ extend(+go.dataset.go); return; }
+  if (go && +go.dataset.ok===1 && mode!=='probe'){
+    const cell = +go.dataset.go;
+    const mv = currentLegal().find(m => m.to === cell && m.ok);
+    if (mv && mv.join !== undefined) joinSeg(mv.join); else extend(cell);
+    return; }
 
   const sel = e.target.closest('[data-seg]');
   if (sel && !e.target.closest('[data-delseg]') && !e.target.closest('[data-clearseg]')){
@@ -1061,9 +1171,14 @@ document.addEventListener('click', e => {
   }
   if (e.target.id === 'segAdd'){
     const cell = $('segCell').value.trim().toLowerCase(), mv = $('segMove').value;
-    if (!/^[a-h][1-8]$/.test(cell) || mv===''){ alert('Enter a cell like f6 and a move number.'); return; }
-    addSegment(idxOf(cell), +mv); return;
+    if (!/^[a-h][1-8]$/.test(cell)){ flash('Enter a cell like f6. The move number is optional.'); return; }
+    addSegment(idxOf(cell), mv==='' ? null : +mv); return;
   }
+  if (e.target.id === 'segStartSet'){
+    const v = $('segStart').value.trim();
+    setSegStart(S.active, v==='' ? null : +v); return;
+  }
+  if (e.target.id === 'segStartClear'){ setSegStart(S.active, null); return; }
   if (e.target.id === 'segEntrySet'){
     const v = $('segEntry').value.trim();
     if (v!=='' && !/^\d+$/.test(v)){ alert('Enter a whole number, or leave it blank for unknown.'); return; }
@@ -1072,9 +1187,9 @@ document.addEventListener('click', e => {
 });
 
 function addSegment(cell, move){
-  if (move < 1){ alert('Move 0 is the trunk start (a1). Anchor extra segments at move 1 or later.'); return; }
+  if (move !== null && move < 1){ flash('Move 0 is the trunk start (a1). Anchor extra runs at move 1 or later.'); return; }
   snapshot();
-  const entry = CLUE[cell]!==undefined ? String(CLUE[cell]) : null;
+  const entry = move === null ? null : (CLUE[cell]!==undefined ? String(CLUE[cell]) : null);
   S.segs.push({start:move, cells:[cell], entry});
   S.active = S.segs.length-1;
   S.dir = 'fwd';
@@ -1290,6 +1405,70 @@ function kmTests(verbose){
   S.segs=[{start:0,cells:[START],entry:'0'},{start:0,cells:[idxOf('h8')],entry:null}];
   EV=evaluate();
   t('same move number twice is flagged', EV.conflicts.some(c=>/is .* in one segment/.test(c)));
+
+  // ---- floating runs and joining ----
+  const mkF = (start, names, entry) => ({start, cells:names.map(idxOf), entry});
+  const setF = (arr, act=0, dir='fwd') => { S.segs=arr; S.active=act; S.dir=dir; S.lock=0; EV=evaluate(); };
+
+  S.towers = [];
+  setF([mkF(0,['a1'],'0'), mkF(null,['d5','f6'],null)], 1);
+  t('a floating run evaluates without move numbers',
+    !EV.segs[1].broke && EV.segs[1].okLen===1 && EV.segs[1].scores.every(x=>x===null));
+  t('floating squares carry no move number', EV.occ.get(idxOf('f6')).move===null);
+  t('floating runs claim no move slots', !EV.byMove.has(1));
+  t('a floating run can still go backward', canGoBack());
+
+  // shape is still enforced without numbers
+  setF([mkF(0,['a1'],'0'), mkF(null,['d5','d6'],null)], 1);
+  t('an illegal shape still breaks a floating run', !!EV.segs[1].broke);
+
+  // forward join: numbered run swallows a floating one and hands over numbering
+  setF([mkF(0,['a1','c2','a3'],'0'), mkF(null,['b5','a7'],null)], 0);
+  let link = linkTargets();
+  t('the floating run\'s first square is offered as a join', link.get(idxOf('b5'))===1);
+  t('the join shows up as a legal move', currentLegal().some(m=>m.to===idxOf('b5') && m.ok && m.join===1));
+  joinSeg(1);
+  t('joining forward merges into one run', S.segs.length===1);
+  t('merged squares are in move order', S.segs[0].cells.map(nameOf).join()==='a1,c2,a3,b5,a7');
+  t('merged run keeps the numbered start', S.segs[0].start===0);
+  t('the joined tail is numbered #4', EV.occ.get(idxOf('a7')).move===4);
+
+  // forward join the other way: a floating run adopts numbers from the run it meets
+  setF([mkF(0,['a1'],'0'), mkF(null,['a3','b5'],null), mkF(9,['a7','c8'],null)], 1);
+  joinSeg(2);
+  t('a floating run inherits numbering from the run it joins',
+    S.segs[1].start===7 && S.segs[1].cells.map(nameOf).join()==='a3,b5,a7,c8',
+    `start=${S.segs[1].start}`);
+  t('inheriting puts the meeting square on its own move', EV.occ.get(idxOf('a7')).move===9);
+
+  // backward join: prepend another run onto the active one's front
+  setF([mkF(0,['a1'],'0'), mkF(null,['b5','a7'],null), mkF(null,['a3'],null)], 1, 'back');
+  link = linkTargets();
+  t('backward offers the other run\'s last square', link.get(idxOf('a3'))===2);
+  joinSeg(2);
+  t('joining backward prepends', S.segs[1].cells.map(nameOf).join()==='a3,b5,a7');
+
+  // numbers must agree when both runs have them
+  setF([mkF(0,['a1','c2','a3'],'0'), mkF(9,['b5'],null)], 0);
+  t('a mismatched move number blocks the join', linkTargets().size===0);
+  setF([mkF(0,['a1','c2','a3'],'0'), mkF(3,['b5'],null)], 0);
+  t('a matching move number allows it', linkTargets().get(idxOf('b5'))===1);
+
+  // start / unset a run's move number
+  setF([mkF(0,['a1'],'0'), mkF(null,['f6','h5'],null)], 1);
+  setSegStart(1, 18);
+  t('setting a start numbers the run', S.segs[1].start===18 && EV.occ.get(idxOf('h5')).move===19);
+  t('setting a start picks up the anchor clue value', S.segs[1].entry==='138' && EV.segs[1].scores[0]===138n);
+  setSegStart(1, null);
+  t('unsetting a start makes it float again', S.segs[1].start===null && S.segs[1].entry===null);
+  setSegStart(1, -1);
+  t('a negative start is refused', S.segs[1].start===null);
+
+  // clicking an empty square starts a floating run
+  setF([mkF(0,['a1'],'0')], 0);
+  startSegmentAt(idxOf('e5'));
+  t('starting anywhere makes a floating run',
+    S.segs.length===2 && S.segs[1].start===null && S.active===1 && S.dir==='fwd');
 
   // ---- erase: ends shrink, middles split ----
   const mk = (start, names, entry) => ({start, cells:names.map(idxOf), entry});

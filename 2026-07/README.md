@@ -33,20 +33,37 @@ clear. The tower tracker then shows how many cells each region has left open.
     r               flip between Forward and Backward
     t / p / b / e   switch mode
 
-## Segments — working from a move you already know
+## Runs — start anywhere, join them up later
 
-The trunk always starts at a1, move 0, score 0. When you work out where the knight lands on
-move 6 or 18 without knowing how it got there, **add a segment** anchored at that square and
-move number. If the square is a clue cell its entry score is filled in automatically; if not,
-leave the entry score blank and moves are still checked for shape and altitude, but ÷ moves
-can't be verified and scores show as `?`.
+The trunk always starts at a1, move 0, score 0. Everything else is a **run** you can start,
+extend and merge freely.
+
+**Start one anywhere.** In Path mode, click any empty square. The run begins there with **no
+move number** — it floats. Its shape and altitude are still checked, and it still refuses
+revisits, but scores stay `?` until it gets a number. Squares in a floating run are labelled
+`+0`, `+1`, `+2` rather than `#N`.
+
+**Give it a number when you know one**, via *starts at move* in the Segments card, or unset it
+to float again. Numbering a run whose first square is a clue cell picks up that clue as its
+entry score automatically.
+
+**Join two runs by pathing into each other.** When the run you're building can reach another
+run's endpoint, that target is drawn with a **ring**. Click it and the two merge into one.
+Whichever side already has move numbers hands them to the other — so a floating run walked out
+from f6 gets real move numbers the moment the trunk reaches it, and every score in it
+resolves. Going **Forward** you join onto another run's first square; going **Backward**, onto
+its last. If both runs already have numbers they have to line up, otherwise the join isn't
+offered.
+
+You can still anchor a run at a known move directly: **add a segment** with a cell and a move
+number. The move number is optional now — leave it blank and the run floats.
 
 - **Forward** extends the head. **Backward** works back toward earlier moves, inverting each
   operation — a level arrival on move 18 into 138 means move 17 held 120; a ×18 arrival means
   138 must divide by 18. Illegal predecessors are refused with the reason.
-- Every segment renders on the board with its own colour stripe and real move numbers.
-- Overlaps are flagged: the same square in two segments, or two segments claiming one move.
-- Once segments join up, delete the spare and the trunk carries the whole path.
+- Every run renders on the board with its own colour stripe.
+- Overlaps are flagged: the same square in two runs, or two runs claiming one move. Floating
+  runs claim no move slots, so they can't collide on numbering.
 
 ## Removing things
 
@@ -124,10 +141,11 @@ realisable as knight moves. Check it in the sandbox.
 
 ## Self-tests
 
-In the sandbox, run `kmTests(true)` in the console — 42 checks covering the board extraction,
-move generation, altitude rules, the divisibility gate, forward and inverse scoring, segment
-anchoring, unknown entry scores, conflict detection, and erasing (end, anchor, middle-split,
-lone anchor, and the a1 and lock guards).
+In the sandbox, run `kmTests(true)` in the console — 64 checks covering the board extraction,
+move generation, altitude rules, the divisibility gate, forward and inverse scoring, run
+anchoring, unknown entry scores, conflict detection, erasing (end, anchor, middle-split, lone
+anchor, and the a1 and lock guards), floating runs, and joining in both directions including
+the numbering handover and the mismatch refusal.
 
 In score paths, press **run self-tests** (or call `spTests(true)`) — 38 checks. They include
 exhaustive sweeps proving backward is the exact inverse of forward and that no backward step
