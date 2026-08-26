@@ -3,6 +3,7 @@
 | File | What it is |
 |---|---|
 | `knight-sandbox.html` | the interactive sandbox — double-click to open |
+| `score-explorer.html` | score-arithmetic search: what can this score reach, and how |
 | `print-grids.html`    | printable blank grids, 4 to a page |
 | `PUZZLE.md`           | verbatim rules, the extracted board, the derived move set |
 
@@ -71,8 +72,34 @@ should I play next".
 numbers, coordinates, a label line, and region shading. 4-up gives ~0.4" cells; drop to 2-up
 if you want room to write four-digit scores.
 
+## Score explorer
+
+Pure arithmetic, no board — it answers "from this score, what clue values can I land on, and
+by what sequence of operations". The altitude rule makes the operation order exact rather than
+a guess: on **ground** you may only `+N` (stay) or `×N` (rise); on a **tower** only `+N` (stay)
+or `÷N` (fall, when it divides evenly). So `×` and `÷` must alternate with any run of `+`
+between them — never two multiplies or two divides in a row.
+
+- **Explore** — give it a score, the next move number N, and whether you're on ground or a
+  tower. It reports every clue value reachable within the next *n* moves, the move number it
+  arrives on, which K values that move is a recording move for, and the full route. Tick
+  "any value" for a per-move summary of everything reachable.
+- **Connect** — "can score A at move i become score B at move j?" A negative answer is a real
+  deduction: it rules the pairing out no matter what the board looks like. For example
+  88 at #6 → 138 at #9 is arithmetically impossible.
+- Search is exhaustive up to the score cap (default 1e9). Depth 45 runs in ~30ms, because `×`
+  overshoots the cap fast and `÷` rarely divides, so the reachable set stays small.
+
+Results are candidates, not answers — a route that works arithmetically still has to be
+realisable as knight moves on the board. Check it in the sandbox.
+
 ## Self-tests
 
-Open the console and run `kmTests(true)`. 27 checks cover the board extraction, move
-generation, altitude rules, the divisibility gate, forward and inverse scoring, segment
+In the sandbox, run `kmTests(true)` in the console — 27 checks covering the board extraction,
+move generation, altitude rules, the divisibility gate, forward and inverse scoring, segment
 anchoring, unknown entry scores, and conflict detection.
+
+In the score explorer, run `seTests(true)` — 21 checks covering the altitude gates, the
+alternation of `×` and `÷`, the divisibility refusal, route replay, and the recording-move
+schedule. The search was also cross-checked against an independent brute-force enumerator on
+six starting positions: identical reachable sets, no misses and no extras.

@@ -1,0 +1,939 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Knight Moves 7 — Score Paths</title>
+<style>
+:root{
+  --bg:#f4f5f7; --panel:#ffffff; --ink:#1b1f24; --muted:#6b7280; --line:#d7dbe0;
+  --level:#64748b; --up:#2563eb; --down:#ea580c; --bad:#dc2626; --good:#15803d;
+  --accent:#4338ca;
+}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);
+  font:14px/1.45 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;}
+h1{font-size:16px;margin:0;font-weight:650;letter-spacing:-.01em}
+h2{font-size:11px;margin:0 0 8px;text-transform:uppercase;letter-spacing:.09em;color:var(--muted);font-weight:650}
+button{font:inherit;background:#fff;color:var(--ink);border:1px solid var(--line);
+  border-radius:7px;padding:5px 9px;cursor:pointer;white-space:nowrap}
+button:hover:not(:disabled){background:#eef0f3}
+button:disabled{opacity:.4;cursor:not-allowed}
+button.on{background:var(--ink);color:#fff;border-color:var(--ink)}
+button.sm{padding:2px 7px;font-size:12px}
+button.go{background:var(--accent);color:#fff;border-color:var(--accent);font-weight:600}
+button.go:hover:not(:disabled){background:#3730a3}
+input,select,textarea{font:inherit;border:1px solid var(--line);border-radius:6px;
+  padding:4px 7px;background:#fff;color:var(--ink)}
+input[type=number]{width:88px}
+label{display:inline-flex;align-items:center;gap:5px}
+.mono{font-family:ui-monospace,SFMono-Regular,Menlo,monospace}
+
+#top{display:flex;align-items:center;gap:8px;padding:9px 12px;background:var(--panel);
+  border-bottom:1px solid var(--line);flex-wrap:wrap;position:sticky;top:0;z-index:20}
+.seg{display:flex;border:1px solid var(--line);border-radius:8px;overflow:hidden}
+.seg button{border:0;border-radius:0;border-right:1px solid var(--line)}
+.seg button:last-child{border-right:0}
+.grow{flex:1}
+.hint{color:var(--muted);font-size:12px}
+#modeHint{padding:6px 16px;background:#eef2ff;color:#3730a3;font-size:12.5px;
+  border-bottom:1px solid var(--line)}
+
+#wrap{display:flex;gap:16px;padding:16px;align-items:flex-start}
+#main{flex:1 1 auto;min-width:0;display:flex;flex-direction:column;gap:12px}
+#side{flex:0 0 250px;display:flex;flex-direction:column;gap:12px}
+.card{background:var(--panel);border:1px solid var(--line);border-radius:11px;padding:12px 13px}
+.panel{display:none}
+.panel.on{display:block}
+.row{display:flex;flex-wrap:wrap;gap:10px 14px;align-items:center;margin-bottom:9px}
+.row:last-child{margin-bottom:0}
+.fld{display:flex;flex-direction:column;gap:3px}
+.fld>span{font-size:11px;text-transform:uppercase;letter-spacing:.06em;color:var(--muted);font-weight:650}
+hr.s{border:0;border-top:1px solid var(--line);margin:10px 0}
+
+table{border-collapse:collapse;width:100%;font-size:12.5px}
+th{text-align:left;font-weight:600;color:var(--muted);font-size:11px;text-transform:uppercase;
+  letter-spacing:.05em;padding:2px 6px 5px;border-bottom:1px solid var(--line);white-space:nowrap}
+td{padding:4px 6px;border-bottom:1px solid #eef0f2;vertical-align:middle}
+td.num{font-variant-numeric:tabular-nums;white-space:nowrap}
+.scroll{max-height:62vh;overflow:auto}
+
+/* path rendering */
+.pth{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:12.5px;line-height:2;
+  white-space:normal;word-break:break-word}
+.sc{font-variant-numeric:tabular-nums}
+.sc.hit{background:#dcfce7;border-radius:4px;padding:0 3px;font-weight:700;color:#14532d}
+.tw{color:var(--up);font-weight:700;font-size:10px;vertical-align:super}
+.op{border-radius:5px;padding:1px 5px;font-size:11.5px;font-weight:650;color:#fff;margin:0 2px}
+.op.level{background:var(--level)}
+.op.up{background:var(--up)}
+.op.down{background:var(--down)}
+
+.pill{border:1px solid var(--line);border-radius:999px;padding:1px 9px;font-size:11.5px;background:#fff;
+  display:inline-block;margin:2px 3px 2px 0;cursor:pointer;user-select:none}
+.pill.on{background:var(--ink);color:#fff;border-color:var(--ink)}
+.mut{color:var(--muted)}
+.warn{color:var(--bad);font-weight:600}
+.okc{color:var(--good);font-weight:600}
+.note{font-size:12px;color:var(--muted);margin-top:8px}
+#status{font-size:12.5px;margin-bottom:8px}
+
+.chain{border-bottom:1px solid #eef0f2;padding:6px 2px}
+.chainhead{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+.chainseq{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:13px;font-weight:600}
+.chainops{margin:6px 0 4px 14px;border-left:2px solid var(--line);padding-left:10px}
+
+table.mx td{text-align:center;font-variant-numeric:tabular-nums;border:1px solid #eef0f2;cursor:default}
+table.mx td.hd,table.mx th{background:#f8f9fb;font-weight:650;color:var(--ink);text-align:right;padding-right:8px}
+table.mx td.y{background:#dcfce7;color:#14532d;font-weight:700;cursor:pointer}
+table.mx td.y:hover{background:#bbf7d0}
+table.mx td.n{color:#d1d5db}
+table.mx td.self{background:#f3f4f6;color:#d1d5db}
+</style>
+</head>
+<body>
+
+<div id="top">
+  <h1>Score Paths</h1>
+  <span class="hint">Knight Moves 7</span>
+  <div class="seg" id="tabs">
+    <button data-tab="explore" class="on">Explore</button>
+    <button data-tab="connect">Connect</button>
+    <button data-tab="ladder">Ladder</button>
+    <button data-tab="matrix">Matrix</button>
+  </div>
+  <span class="grow"></span>
+  <span class="hint">
+    <span class="op level">+N</span> level &nbsp;
+    <span class="op up">&times;N</span> up (ground&rarr;tower) &nbsp;
+    <span class="op down">&divide;N</span> down (tower&rarr;ground, must divide)
+  </span>
+</div>
+<div id="modeHint"></div>
+
+<div id="wrap">
+  <div id="main">
+
+    <!-- ───────────────────────────── EXPLORE ───────────────────────────── -->
+    <div class="panel on card" id="p-explore">
+      <h2>Explore — where can this score go?</h2>
+      <div class="row">
+        <label class="fld"><span>Score</span><input type="number" id="ex-score" value="88"></label>
+        <label class="fld"><span>Next move #</span><input type="number" id="ex-move" value="19" min="1" max="63"></label>
+        <label class="fld"><span>Standing on</span>
+          <select id="ex-alt"><option value="0">ground</option><option value="1">tower</option></select></label>
+        <label class="fld"><span>Direction</span>
+          <select id="ex-dir"><option value="fwd">forward</option><option value="bwd">backward</option></select></label>
+        <label class="fld"><span>Moves</span><input type="number" id="ex-depth" value="6" min="1" max="24"></label>
+        <label class="fld"><span>&nbsp;</span><button class="go" id="ex-run">Run</button></label>
+      </div>
+      <div class="row">
+        <label><input type="checkbox" id="ex-only" checked> land on a clue value</label>
+        <label><input type="checkbox" id="ex-cp"> land on a checkpoint move</label>
+        <label class="fld"><span>K (late gap)</span>
+          <select id="ex-k"><option value="0">any</option><option>4</option><option>5</option><option>6</option>
+            <option>7</option><option>8</option><option>9</option></select></label>
+        <label><input type="checkbox" id="ex-end0"> must end on ground</label>
+        <span class="hint" id="ex-echo"></span>
+      </div>
+      <hr class="s">
+      <div id="status-explore"></div>
+      <div class="scroll" id="out-explore"></div>
+    </div>
+
+    <!-- ───────────────────────────── CONNECT ───────────────────────────── -->
+    <div class="panel card" id="p-connect">
+      <h2>Connect — get from one score to another in a fixed number of moves</h2>
+      <div class="row">
+        <label class="fld"><span>From score</span><input type="number" id="cn-a" value="88"></label>
+        <label class="fld"><span>From clue</span><select id="cn-apick"></select></label>
+        <label class="fld"><span>Next move #</span><input type="number" id="cn-move" value="19" min="1" max="63"></label>
+        <label class="fld"><span>Standing on</span>
+          <select id="cn-alt"><option value="0">ground</option><option value="1">tower</option></select></label>
+      </div>
+      <div class="row">
+        <label class="fld"><span>To score</span><input type="number" id="cn-b" value="138"></label>
+        <label class="fld"><span>To clue</span><select id="cn-bpick"></select></label>
+        <label class="fld"><span>Ending on</span>
+          <select id="cn-balt"><option value="">either</option><option value="0">ground</option><option value="1">tower</option></select></label>
+        <label class="fld"><span>Moves (min)</span><input type="number" id="cn-min" value="3" min="0" max="30"></label>
+        <label class="fld"><span>Moves (max)</span><input type="number" id="cn-max" value="3" min="0" max="30"></label>
+        <label class="fld"><span>&nbsp;</span><button class="go" id="cn-run">Run</button></label>
+      </div>
+      <hr class="s">
+      <div id="status-connect"></div>
+      <div class="scroll" id="out-connect"></div>
+    </div>
+
+    <!-- ───────────────────────────── LADDER ───────────────────────────── -->
+    <div class="panel card" id="p-ladder">
+      <h2>Ladder — chain clue values checkpoint to checkpoint</h2>
+      <div class="row">
+        <label class="fld"><span>Start score</span><input type="number" id="ld-score" value="0"></label>
+        <label class="fld"><span>Start move #</span><input type="number" id="ld-move" value="0" min="0" max="63"></label>
+        <label class="fld"><span>Standing on</span>
+          <select id="ld-alt"><option value="0">ground</option><option value="1">tower</option></select></label>
+        <label class="fld"><span>Gap</span><input type="number" id="ld-gap" value="3" min="1" max="12"></label>
+        <label class="fld"><span>Steps</span><input type="number" id="ld-steps" value="6" min="1" max="8"></label>
+        <label class="fld"><span>Max towers</span><input type="number" id="ld-tw" value="13" min="1" max="13"></label>
+        <label class="fld"><span>&nbsp;</span><button class="go" id="ld-run">Run</button></label>
+      </div>
+      <div class="row">
+        <span class="hint">Pool of values still available:</span>
+        <span id="ld-pool"></span>
+        <button class="sm" id="ld-all">all</button><button class="sm" id="ld-none">none</button>
+      </div>
+      <div class="note" id="ld-preset"></div>
+      <hr class="s">
+      <div id="status-ladder"></div>
+      <div class="scroll" id="out-ladder"></div>
+    </div>
+
+    <!-- ───────────────────────────── MATRIX ───────────────────────────── -->
+    <div class="panel card" id="p-matrix">
+      <h2>Matrix — which clue can follow which</h2>
+      <div class="row">
+        <label class="fld"><span>Next move #</span><input type="number" id="mx-move" value="1" min="1" max="63"></label>
+        <label class="fld"><span>Gap</span><input type="number" id="mx-gap" value="3" min="1" max="12"></label>
+        <label class="fld"><span>Start on</span>
+          <select id="mx-alt"><option value="0">ground</option><option value="1">tower</option></select></label>
+        <label class="fld"><span>End on</span>
+          <select id="mx-balt"><option value="">either</option><option value="0">ground</option><option value="1">tower</option></select></label>
+        <label class="fld"><span>&nbsp;</span><button class="go" id="mx-run">Run</button></label>
+        <span class="hint">step buttons:</span>
+        <span id="mx-steps"></span>
+      </div>
+      <hr class="s">
+      <div id="status-matrix"></div>
+      <div class="scroll" id="out-matrix"></div>
+    </div>
+
+  </div>
+
+  <aside id="side">
+    <div class="card">
+      <h2>Clue values</h2>
+      <table id="cluetbl"></table>
+      <div class="note">Recorded at moves 0, 3, 6, 9, 12, 15, 18, then every K moves (K&nbsp;&gt;&nbsp;3).</div>
+    </div>
+    <div class="card">
+      <h2>Targets</h2>
+      <input class="mono" id="targets" style="width:100%" value="">
+      <div class="note">Comma-separated. Scores that count as a "landing".</div>
+    </div>
+    <div class="card">
+      <h2>Engine limits</h2>
+      <label class="fld" style="margin-bottom:7px"><span>Max intermediate score</span>
+        <input type="number" id="lim-score" value="1000000000" style="width:100%"></label>
+      <label class="fld" style="margin-bottom:7px"><span>Node budget</span>
+        <input type="number" id="lim-budget" value="4000000" style="width:100%"></label>
+      <label class="fld"><span>Max rows shown</span>
+        <input type="number" id="lim-rows" value="400" style="width:100%"></label>
+      <hr class="s">
+      <button class="sm" id="runtests">run self-tests</button>
+      <div class="note" id="testout"></div>
+    </div>
+    <div class="card">
+      <h2>Rules baked in</h2>
+      <div class="note" style="margin:0">
+        Move <b>N</b> from a square at altitude <i>a</i>:<br>
+        • same altitude &rarr; <b>score + N</b><br>
+        • up (ground&rarr;tower) &rarr; <b>score &times; N</b><br>
+        • down (tower&rarr;ground) &rarr; <b>score &divide; N</b>, only if N divides the score<br><br>
+        Altitude is 0 or 1, so ups and downs must alternate: never two &times; in a row without a &divide;
+        between them, and never two &divide; in a row. Level moves happen at either altitude and don't
+        change it. Max move number 63 (64 squares). At most 13 tower squares exist, one per region.
+      </div>
+    </div>
+  </aside>
+</div>
+
+<script>
+// ==ENGINE START==
+// Pure logic. No DOM. Extractable for node-based testing.
+
+var CLUES = [
+  {cell:'a1', v:0},    {cell:'g3', v:1},    {cell:'e4', v:16},   {cell:'d6', v:23},
+  {cell:'f8', v:37},   {cell:'d3', v:88},   {cell:'f6', v:138},  {cell:'f3', v:272},
+  {cell:'a5', v:528},  {cell:'b3', v:750},  {cell:'b4', v:449},  {cell:'h8', v:1100}
+];
+var MAX_MOVE = 63;      // 64 squares, never revisited
+var MAX_TOWERS = 13;    // one tower per region
+
+// Forward: states reachable by playing move number n from (score, alt).
+// Returns the state AFTER the move.
+function fwdSteps(score, alt, n){
+  var out = [{kind:'level', n:n, score:score + n, alt:alt}];
+  if(alt === 0) out.push({kind:'up', n:n, score:score * n, alt:1});
+  else if(score % n === 0) out.push({kind:'down', n:n, score:score / n, alt:0});
+  return out;
+}
+
+// Backward: states that could have played move number n and landed on (score, alt).
+// Returns the state BEFORE the move.
+function bwdSteps(score, alt, n){
+  var out = [];
+  var lvl = score - n;
+  if(lvl >= 0) out.push({kind:'level', n:n, score:lvl, alt:alt});
+  if(alt === 1 && score % n === 0) out.push({kind:'up', n:n, score:score / n, alt:0});
+  if(alt === 0) out.push({kind:'down', n:n, score:score * n, alt:1});
+  return out;
+}
+
+function isCheckpoint(move, K){
+  if(move < 0) return false;
+  if(move <= 18) return move % 3 === 0;
+  if(!K) return true;               // K unknown: any move past 18 could be one
+  return (move - 18) % K === 0;
+}
+
+// Count tower squares (altitude 1) along a path, start square included.
+function towersOf(startAlt, ops){
+  var t = startAlt === 1 ? 1 : 0;
+  for(var i = 0; i < ops.length; i++) if(ops[i].alt === 1) t++;
+  return t;
+}
+
+function newCtx(o){
+  o = o || {};
+  return {
+    maxScore: o.maxScore == null ? 1e9 : o.maxScore,
+    budget:   o.budget   == null ? 4e6 : o.budget,
+    maxTowers:o.maxTowers== null ? MAX_TOWERS : o.maxTowers,
+    perKey:   o.perKey   == null ? 400 : o.perKey,
+    nodes: 0, trunc: false
+  };
+}
+
+/* ── Explore ───────────────────────────────────────────────────────────────
+   start: {score, move, alt} where `move` is the move the score was recorded on
+          (forward plays move+1 next; backward undoes move `move` itself).
+   opts:  {depth, dir:'fwd'|'bwd', keep(node)->bool, maxResults, ctx}
+   Every intermediate node is offered to keep(), not just the deepest ones.  */
+function explore(start, opts){
+  var ctx = opts.ctx || newCtx();
+  var keep = opts.keep || function(){ return true; };
+  var maxResults = opts.maxResults == null ? 500 : opts.maxResults;
+  var dir = opts.dir || 'fwd';
+  var res = [], capped = false, ops = [];
+
+  function rec(score, alt, move, d, towers){
+    if(d > 0){
+      var node = {score:score, alt:alt, move:move, towers:towers, ops:null};
+      if(keep(node)){
+        if(res.length < maxResults){ node.ops = ops.slice(); res.push(node); }
+        else capped = true;
+      }
+    }
+    if(d >= opts.depth) return;
+    var n = dir === 'fwd' ? move + 1 : move;
+    if(dir === 'fwd' ? n > MAX_MOVE : n < 1) return;
+    var next = dir === 'fwd' ? fwdSteps(score, alt, n) : bwdSteps(score, alt, n);
+    for(var i = 0; i < next.length; i++){
+      var s = next[i];
+      if(++ctx.nodes > ctx.budget){ ctx.trunc = true; return; }
+      if(s.score > ctx.maxScore) continue;
+      var t = towers + (s.alt === 1 ? 1 : 0);
+      if(t > ctx.maxTowers) continue;
+      ops.push(dir === 'fwd' ? s : {kind:s.kind, n:n, score:score, alt:alt});
+      rec(s.score, s.alt, dir === 'fwd' ? n : n - 1, d + 1, t);
+      ops.pop();
+    }
+  }
+  rec(start.score, start.alt, start.move, 0, start.alt === 1 ? 1 : 0);
+  return {res:res, capped:capped, ctx:ctx};
+}
+
+/* ── Connect ───────────────────────────────────────────────────────────────
+   Meet in the middle: all op sequences of exactly `nMoves` moves taking
+   (a.score, a.alt) at move a.move to (b.score, b.alt).  b.alt null = either.
+   Returns {paths:[{ops, endAlt, towers}], ctx}.
+   ops[i] = {kind, n, score, alt} = the move and the state it lands on.        */
+function connect(a, b, nMoves, ctx){
+  ctx = ctx || newCtx();
+  var endAlts = (b.alt === 0 || b.alt === 1) ? [b.alt] : [0, 1];
+  var paths = [];
+
+  if(nMoves === 0){
+    for(var q = 0; q < endAlts.length; q++)
+      if(a.score === b.score && a.alt === endAlts[q])
+        paths.push({ops:[], endAlt:a.alt, towers:a.alt === 1 ? 1 : 0});
+    return {paths:paths, ctx:ctx};
+  }
+  if(a.move + nMoves > MAX_MOVE) return {paths:paths, ctx:ctx};
+
+  var half = Math.ceil(nMoves / 2);
+
+  // forward `half` moves from a, bucketed by the state reached
+  var fmap = new Map(), fops = [];
+  (function f(score, alt, move, d){
+    if(d === half){
+      var k = score + ':' + alt, arr = fmap.get(k);
+      if(!arr){ arr = []; fmap.set(k, arr); }
+      if(arr.length < ctx.perKey) arr.push(fops.slice());
+      return;
+    }
+    var n = move + 1;
+    if(n > MAX_MOVE) return;
+    var nx = fwdSteps(score, alt, n);
+    for(var i = 0; i < nx.length; i++){
+      var s = nx[i];
+      if(++ctx.nodes > ctx.budget){ ctx.trunc = true; return; }
+      if(s.score > ctx.maxScore) continue;
+      fops.push(s); f(s.score, s.alt, n, d + 1); fops.pop();
+    }
+  })(a.score, a.alt, a.move, 0);
+  if(!fmap.size) return {paths:paths, ctx:ctx};
+
+  // backward the remaining moves from each candidate end state
+  var back = nMoves - half, endMove = a.move + nMoves;
+  for(var e = 0; e < endAlts.length; e++){
+    var bops = [];
+    (function g(score, alt, move, d){
+      if(d === back){
+        var k = score + ':' + alt, arr = fmap.get(k);
+        if(!arr) return;
+        var tail = bops.slice().reverse();
+        for(var i = 0; i < arr.length; i++){
+          var ops = arr[i].concat(tail);
+          var tw = towersOf(a.alt, ops);
+          if(tw > ctx.maxTowers) continue;
+          paths.push({ops:ops, endAlt:ops.length ? ops[ops.length-1].alt : a.alt, towers:tw});
+        }
+        return;
+      }
+      var n = move;
+      if(n < 1) return;
+      var pv = bwdSteps(score, alt, n);
+      for(var i = 0; i < pv.length; i++){
+        var p = pv[i];
+        if(++ctx.nodes > ctx.budget){ ctx.trunc = true; return; }
+        if(p.score > ctx.maxScore) continue;
+        bops.push({kind:p.kind, n:n, score:score, alt:alt});
+        g(p.score, p.alt, n - 1, d + 1);
+        bops.pop();
+      }
+    })(b.score, endAlts[e], endMove, 0);
+  }
+  return {paths:paths, ctx:ctx};
+}
+
+/* ── Ladder ────────────────────────────────────────────────────────────────
+   Chain checkpoint values: start -> v1 -> v2 -> ... each leg exactly `gap`
+   moves, each value used at most once, altitude carried across.
+   cfg: {score, move, alt, gap, steps, pool:[v], maxChains, perLeg, ctx}      */
+function ladder(cfg){
+  var ctx = cfg.ctx || newCtx();
+  var maxChains = cfg.maxChains == null ? 400 : cfg.maxChains;
+  var perLeg = cfg.perLeg == null ? 12 : cfg.perLeg;
+  var chains = [], capped = false, used = new Set(), stack = [];
+
+  if(cfg.pool.indexOf(cfg.score) >= 0) used.add(cfg.score);
+
+  function rec(score, alt, i, towers){
+    if(i === cfg.steps){
+      if(chains.length < maxChains) chains.push({legs:stack.slice(), towers:towers});
+      else capped = true;
+      return;
+    }
+    var move = cfg.move + i * cfg.gap;
+    for(var p = 0; p < cfg.pool.length; p++){
+      var v = cfg.pool[p];
+      if(used.has(v)) continue;
+      for(var ea = 0; ea <= 1; ea++){
+        if(ctx.nodes > ctx.budget){ ctx.trunc = true; return; }
+        var r = connect({score:score, move:move, alt:alt}, {score:v, alt:ea}, cfg.gap, ctx);
+        if(!r.paths.length) continue;
+        // cheapest tower cost for this leg (start square already counted)
+        var legMin = Infinity;
+        for(var q = 0; q < r.paths.length; q++){
+          var c = 0, ops = r.paths[q].ops;
+          for(var z = 0; z < ops.length; z++) if(ops[z].alt === 1) c++;
+          if(c < legMin) legMin = c;
+        }
+        if(towers + legMin > ctx.maxTowers) continue;
+        stack.push({v:v, alt:ea, move:move + cfg.gap - 1, paths:r.paths.slice(0, perLeg),
+                    count:r.paths.length});
+        used.add(v);
+        rec(v, ea, i + 1, towers + legMin);
+        used.delete(v);
+        stack.pop();
+        if(chains.length >= maxChains) capped = true;
+      }
+    }
+  }
+  rec(cfg.score, cfg.alt, 0, cfg.alt === 1 ? 1 : 0);
+  return {chains:chains, capped:capped, ctx:ctx};
+}
+
+/* ── Matrix ────────────────────────────────────────────────────────────────
+   For every ordered pair of values, how many `gap`-move sequences join them
+   starting at move `move` from altitude `alt`.                               */
+function matrix(values, move, gap, alt, endAlt, ctx){
+  ctx = ctx || newCtx();
+  var out = [];
+  for(var i = 0; i < values.length; i++){
+    var row = [];
+    for(var j = 0; j < values.length; j++){
+      if(i === j){ row.push(null); continue; }
+      var r = connect({score:values[i], move:move, alt:alt},
+                      {score:values[j], alt:endAlt}, gap, ctx);
+      var to0 = 0, to1 = 0;
+      for(var k = 0; k < r.paths.length; k++) r.paths[k].endAlt === 1 ? to1++ : to0++;
+      row.push({n:r.paths.length, to0:to0, to1:to1});
+    }
+    out.push(row);
+  }
+  return {grid:out, ctx:ctx};
+}
+
+/* ── Self-tests ──────────────────────────────────────────────────────────── */
+function spTests(verbose){
+  var out = [];
+  function ok(name, cond, extra){ out.push({name:name, pass:!!cond, extra:extra}); }
+  function eq(name, a, b){ ok(name, a === b, a + ' != ' + b); }
+
+  // step generation
+  var f = fwdSteps(88, 0, 19);
+  eq('ground: two options', f.length, 2);
+  eq('ground level', f[0].score, 107);
+  eq('ground up', f[1].score, 88 * 19);
+  eq('up sets altitude', f[1].alt, 1);
+  var g = fwdSteps(88, 1, 19);
+  eq('tower, 19 does not divide 88: level only', g.length, 1);
+  var h = fwdSteps(88, 1, 22);
+  eq('tower, 22 divides 88: two options', h.length, 2);
+  eq('down divides', h[1].score, 4);
+  eq('down sets altitude', h[1].alt, 0);
+  var z = fwdSteps(0, 1, 7);
+  eq('0 is divisible by anything', z.length, 2);
+  eq('0 divided stays 0', z[1].score, 0);
+
+  // backward is the exact inverse of forward
+  var bad = 0;
+  for(var s = 0; s <= 400; s += 7) for(var a = 0; a <= 1; a++) for(var n = 1; n <= 30; n++){
+    var fs = fwdSteps(s, a, n);
+    for(var i = 0; i < fs.length; i++){
+      var st = fs[i];
+      var bs = bwdSteps(st.score, st.alt, n), found = false;
+      for(var j = 0; j < bs.length; j++)
+        if(bs[j].kind === st.kind && bs[j].score === s && bs[j].alt === a) found = true;
+      if(!found) bad++;
+    }
+  }
+  eq('backward inverts forward everywhere', bad, 0);
+
+  // no backward step invents an illegal forward move
+  var bogus = 0;
+  for(var s2 = 0; s2 <= 300; s2 += 11) for(var a2 = 0; a2 <= 1; a2++) for(var n2 = 1; n2 <= 25; n2++){
+    var bs2 = bwdSteps(s2, a2, n2);
+    for(var k = 0; k < bs2.length; k++){
+      var p = bs2[k], fs2 = fwdSteps(p.score, p.alt, n2), hit = false;
+      for(var m = 0; m < fs2.length; m++)
+        if(fs2[m].kind === p.kind && fs2[m].score === s2 && fs2[m].alt === a2) hit = true;
+      if(!hit) bogus++;
+    }
+  }
+  eq('every backward step is a legal forward move', bogus, 0);
+
+  // explore
+  var ex = explore({score:88, move:18, alt:0}, {depth:1, dir:'fwd'});
+  eq('explore depth 1 from ground', ex.res.length, 2);
+  var exb = explore({score:138, move:18, alt:0}, {depth:1, dir:'bwd'});
+  eq('backward from 138 at move 18: level or down-inverse', exb.res.length, 2);
+  var sawLevel = false;
+  for(var q = 0; q < exb.res.length; q++)
+    if(exb.res[q].ops[0].kind === 'level' && exb.res[q].score === 120) sawLevel = true;
+  ok('138 level-arrival on move 18 came from 120', sawLevel);
+  eq('backward step lands on the previous move number', exb.res[0].move, 17);
+
+  // explore never proposes an illegal move
+  var illegal = 0;
+  var ex2 = explore({score:5, move:3, alt:0}, {depth:8, dir:'fwd', maxResults:100000});
+  for(var r = 0; r < ex2.res.length; r++){
+    var sc = 5, al = 0, ops = ex2.res[r].ops;
+    for(var t = 0; t < ops.length; t++){
+      var o = ops[t];
+      if(o.kind === 'level'){ sc += o.n; }
+      else if(o.kind === 'up'){ if(al !== 0) illegal++; sc *= o.n; al = 1; }
+      else { if(al !== 1 || sc % o.n !== 0) illegal++; sc /= o.n; al = 0; }
+      if(sc !== o.score || al !== o.alt) illegal++;
+    }
+    if(sc !== ex2.res[r].score) illegal++;
+  }
+  eq('every explored path replays exactly', illegal, 0);
+
+  // connect
+  var c = connect({score:88, move:18, alt:0}, {score:88 * 19 + 20, alt:1}, 2);
+  ok('connect finds x19 then +20', c.paths.length >= 1);
+  var c0 = connect({score:7, move:4, alt:0}, {score:7, alt:0}, 0);
+  eq('zero-move connect matches identical states', c0.paths.length, 1);
+  var c1 = connect({score:7, move:4, alt:0}, {score:8, alt:0}, 0);
+  eq('zero-move connect rejects different states', c1.paths.length, 0);
+
+  // connect agrees with brute force
+  var brute = explore({score:0, move:0, alt:0}, {depth:5, dir:'fwd', maxResults:100000});
+  var tally = {};
+  for(var b = 0; b < brute.res.length; b++){
+    var nd = brute.res[b];
+    if(nd.ops.length !== 5) continue;
+    var key = nd.score + ':' + nd.alt;
+    tally[key] = (tally[key] || 0) + 1;
+  }
+  var mismatch = 0, checked = 0;
+  for(var key2 in tally){
+    var parts = key2.split(':');
+    var cc = connect({score:0, move:0, alt:0},
+                     {score:+parts[0], alt:+parts[1]}, 5);
+    checked++;
+    if(cc.paths.length !== tally[key2]) mismatch++;
+  }
+  ok('connect matches brute force on ' + checked + ' endpoints', mismatch === 0, mismatch + ' mismatches');
+
+  // connect respects the requested end altitude
+  var wrongAlt = 0;
+  var ca = connect({score:16, move:9, alt:0}, {score:272, alt:0}, 6);
+  for(var w = 0; w < ca.paths.length; w++) if(ca.paths[w].endAlt !== 0) wrongAlt++;
+  eq('connect honours end altitude', wrongAlt, 0);
+
+  // checkpoints
+  ok('move 0 is a checkpoint', isCheckpoint(0, 0));
+  ok('move 18 is a checkpoint', isCheckpoint(18, 0));
+  ok('move 17 is not', !isCheckpoint(17, 0));
+  ok('K=5 puts a checkpoint on 23', isCheckpoint(23, 5));
+  ok('K=5 has none on 24', !isCheckpoint(24, 5));
+
+  // ladder
+  var L = ladder({score:0, move:0, alt:0, gap:3, steps:1, pool:[1, 16, 23, 88], maxChains:500});
+  var ladderBad = 0;
+  for(var i2 = 0; i2 < L.chains.length; i2++){
+    var leg = L.chains[i2].legs[0];
+    for(var p2 = 0; p2 < leg.paths.length; p2++){
+      var ops2 = leg.paths[p2].ops;
+      if(ops2.length !== 3) ladderBad++;
+      if(ops2[ops2.length - 1].score !== leg.v) ladderBad++;
+    }
+  }
+  eq('ladder legs land on their value in `gap` moves', ladderBad, 0);
+  var reused = 0;
+  var L2 = ladder({score:0, move:0, alt:0, gap:3, steps:3, pool:[1, 16, 23, 88, 37], maxChains:2000});
+  for(var i3 = 0; i3 < L2.chains.length; i3++){
+    var seen = {};
+    for(var j3 = 0; j3 < L2.chains[i3].legs.length; j3++){
+      var vv = L2.chains[i3].legs[j3].v;
+      if(seen[vv]) reused++;
+      seen[vv] = 1;
+    }
+  }
+  eq('ladder never reuses a value', reused, 0);
+
+  // limits
+  var tw = connect({score:0, move:0, alt:0}, {score:6, alt:1}, 3, newCtx({maxTowers:1}));
+  var twBad = 0;
+  for(var i4 = 0; i4 < tw.paths.length; i4++) if(tw.paths[i4].towers > 1) twBad++;
+  eq('tower cap is enforced', twBad, 0);
+  var far = connect({score:0, move:60, alt:0}, {score:100, alt:0}, 8);
+  eq('paths past move 63 are refused', far.paths.length, 0);
+
+  var fails = out.filter(function(o){ return !o.pass; });
+  if(typeof console !== 'undefined'){
+    if(verbose || fails.length){
+      console.group('spTests: ' + (out.length - fails.length) + '/' + out.length + ' passed');
+      out.forEach(function(o){
+        if(o.pass && verbose) console.log('  ok  ' + o.name);
+        if(!o.pass) console.warn('  FAIL ' + o.name + (o.extra ? '  (' + o.extra + ')' : ''));
+      });
+      console.groupEnd();
+    }
+  }
+  return {total:out.length, passed:out.length - fails.length, fails:fails};
+}
+// ==ENGINE END==
+
+if(typeof module !== 'undefined' && module.exports){
+  module.exports = {fwdSteps:fwdSteps, bwdSteps:bwdSteps, explore:explore, connect:connect,
+                    ladder:ladder, matrix:matrix, isCheckpoint:isCheckpoint, newCtx:newCtx,
+                    CLUES:CLUES, spTests:spTests};
+}
+</script>
+
+<script>
+// ── UI ───────────────────────────────────────────────────────────────────────
+var $ = function(id){ return document.getElementById(id); };
+var SY = {level:'+', up:'×', down:'÷'};
+var HINTS = {
+  explore: 'Play out every legal continuation and see which clue values you can land on — forwards from a known score, or backwards into one.',
+  connect: 'All the ways to get from one score to another in an exact number of moves. Set min≠max to sweep a range of lengths.',
+  ladder:  'Chain clue values a checkpoint at a time. Gap 3 / 6 steps from 0 covers moves 1–18; then rerun with the later gap K from whatever sat on move 18.',
+  matrix:  'Every ordered pair of clue values: can one follow the other across one checkpoint gap? Click a green cell to open it in Connect.'
+};
+
+function targets(){
+  return $('targets').value.split(/[,\s]+/).map(Number).filter(function(x){ return !isNaN(x); });
+}
+function limits(extra){
+  var o = {maxScore:+$('lim-score').value || 1e9, budget:+$('lim-budget').value || 4e6};
+  if(extra) for(var k in extra) o[k] = extra[k];
+  return newCtx(o);
+}
+function rowCap(){ return Math.max(1, +$('lim-rows').value || 400); }
+function fmt(n){ return String(n); }
+
+function pathHTML(startScore, startAlt, ops, tset){
+  var h = '<span class="sc">' + fmt(startScore) + '</span>' + (startAlt === 1 ? '<span class="tw">T</span>' : '');
+  for(var i = 0; i < ops.length; i++){
+    var o = ops[i], hit = tset && tset.has(o.score);
+    h += ' <span class="op ' + o.kind + '">' + SY[o.kind] + o.n + '</span> ' +
+         '<span class="sc' + (hit ? ' hit' : '') + '">' + fmt(o.score) + '</span>' +
+         (o.alt === 1 ? '<span class="tw">T</span>' : '');
+  }
+  return h;
+}
+function status(id, ctx, shown, total, note){
+  var bits = [];
+  bits.push('<b>' + total + '</b> result' + (total === 1 ? '' : 's'));
+  if(shown < total) bits.push('showing first ' + shown);
+  if(note) bits.push(note);
+  if(ctx && ctx.trunc) bits.push('<span class="warn">node budget hit — results are incomplete, raise the budget or narrow the search</span>');
+  $('status-' + id).innerHTML = bits.join(' &middot; ');
+}
+
+// tabs
+var tab = 'explore';
+Array.prototype.forEach.call($('tabs').children, function(b){
+  b.onclick = function(){
+    tab = b.dataset.tab;
+    Array.prototype.forEach.call($('tabs').children, function(x){ x.classList.toggle('on', x === b); });
+    ['explore','connect','ladder','matrix'].forEach(function(t){ $('p-' + t).classList.toggle('on', t === tab); });
+    $('modeHint').textContent = HINTS[tab];
+  };
+});
+$('modeHint').textContent = HINTS.explore;
+
+// clue table + defaults
+(function(){
+  var sorted = CLUES.slice().sort(function(a, b){ return a.v - b.v; });
+  var h = '<tr><th>Cell</th><th style="text-align:right">Score</th></tr>';
+  sorted.forEach(function(c){
+    h += '<tr><td class="mono">' + c.cell + '</td><td class="num" style="text-align:right">' + c.v + '</td></tr>';
+  });
+  $('cluetbl').innerHTML = h;
+  $('targets').value = sorted.map(function(c){ return c.v; }).join(', ');
+
+  var opts = '<option value="">—</option>' + sorted.map(function(c){
+    return '<option value="' + c.v + '">' + c.cell + ' = ' + c.v + '</option>';
+  }).join('');
+  $('cn-apick').innerHTML = opts; $('cn-bpick').innerHTML = opts;
+  $('cn-apick').onchange = function(){ if(this.value) $('cn-a').value = this.value; };
+  $('cn-bpick').onchange = function(){ if(this.value) $('cn-b').value = this.value; };
+
+  // ladder pool pills
+  var pool = $('ld-pool');
+  sorted.forEach(function(c){
+    var s = document.createElement('span');
+    s.className = 'pill' + (c.v === 0 ? '' : ' on');
+    s.textContent = c.v;
+    s.dataset.v = c.v;
+    s.onclick = function(){ s.classList.toggle('on'); };
+    pool.appendChild(s);
+  });
+  $('ld-all').onclick = function(){ Array.prototype.forEach.call(pool.children, function(p){ p.classList.add('on'); }); };
+  $('ld-none').onclick = function(){ Array.prototype.forEach.call(pool.children, function(p){ p.classList.remove('on'); }); };
+  $('ld-preset').innerHTML = 'Puzzle default: start 0 on move 0, gap 3, 6 steps — that is the six clue values ' +
+    'recorded on moves 3, 6, 9, 12, 15, 18. The other five clues are the late records at 18+K, 18+2K, …';
+
+  var st = $('mx-steps');
+  [[1,'m1→3'],[4,'m4→6'],[7,'m7→9'],[10,'m10→12'],[13,'m13→15'],[16,'m16→18']].forEach(function(p){
+    var b = document.createElement('button');
+    b.className = 'sm'; b.textContent = p[1];
+    b.onclick = function(){ $('mx-move').value = p[0]; runMatrix(); };
+    st.appendChild(b);
+  });
+})();
+function ladderPool(){
+  return Array.prototype.filter.call($('ld-pool').children, function(p){ return p.classList.contains('on'); })
+    .map(function(p){ return +p.dataset.v; });
+}
+
+// ── Explore ──────────────────────────────────────────────────────────────────
+function runExplore(){
+  var score = +$('ex-score').value, nextMove = +$('ex-move').value, alt = +$('ex-alt').value;
+  var dir = $('ex-dir').value, depth = Math.max(1, +$('ex-depth').value);
+  var tset = new Set(targets());
+  var onlyT = $('ex-only').checked, onlyCP = $('ex-cp').checked, K = +$('ex-k').value;
+  var end0 = $('ex-end0').checked;
+  var start = {score:score, move:dir === 'fwd' ? nextMove - 1 : nextMove, alt:alt};
+
+  $('ex-echo').innerHTML = dir === 'fwd'
+    ? 'score ' + score + ' recorded on move ' + (nextMove - 1) + '; next move is #' + nextMove
+    : 'score ' + score + ' recorded on arriving at move ' + nextMove + '; undoing move #' + nextMove + ' first';
+
+  var ctx = limits();
+  var r = explore(start, {
+    depth: depth, dir: dir, maxResults: 200000, ctx: ctx,
+    keep: function(n){
+      if(onlyT && !tset.has(n.score)) return false;
+      if(onlyCP && !isCheckpoint(n.move, K)) return false;
+      if(end0 && n.alt !== 0) return false;
+      return true;
+    }
+  });
+  r.res.sort(function(a, b){ return a.ops.length - b.ops.length || a.score - b.score; });
+
+  var cap = rowCap(), shown = r.res.slice(0, cap);
+  var h = '<table><tr><th>Move</th><th>Score</th><th>On</th><th>Twr</th><th>Path</th></tr>';
+  shown.forEach(function(n){
+    var cp = isCheckpoint(n.move, K);
+    h += '<tr><td class="num">' + n.move + (cp ? ' <span class="okc" title="checkpoint">●</span>' : '') + '</td>' +
+         '<td class="num"><b>' + fmt(n.score) + '</b></td>' +
+         '<td>' + (n.alt === 1 ? '<span class="tw" style="vertical-align:baseline">tower</span>' : '<span class="mut">ground</span>') + '</td>' +
+         '<td class="num mut">' + n.towers + '</td>' +
+         '<td class="pth">' + pathHTML(score, alt, dir === 'fwd' ? n.ops : n.ops.slice().reverse(), tset) + '</td></tr>';
+  });
+  h += '</table>';
+  if(!r.res.length) h = '<div class="mut">Nothing matches. Loosen the filters or add moves.</div>';
+  $('out-explore').innerHTML = h;
+  status('explore', ctx, shown.length, r.res.length,
+    dir === 'bwd' ? 'paths read left-to-right in move order, ending on the score you entered' : null);
+}
+$('ex-run').onclick = runExplore;
+
+// ── Connect ──────────────────────────────────────────────────────────────────
+function runConnect(){
+  var a = +$('cn-a').value, nextMove = +$('cn-move').value, alt = +$('cn-alt').value;
+  var b = +$('cn-b').value, baltRaw = $('cn-balt').value;
+  var balt = baltRaw === '' ? null : +baltRaw;
+  var lo = Math.max(0, +$('cn-min').value), hi = Math.max(lo, +$('cn-max').value);
+  var tset = new Set(targets());
+  var ctx = limits(), all = [];
+  for(var n = lo; n <= hi; n++){
+    var r = connect({score:a, move:nextMove - 1, alt:alt}, {score:b, alt:balt}, n, ctx);
+    r.paths.forEach(function(p){ p.len = n; all.push(p); });
+  }
+  all.sort(function(x, y){ return x.len - y.len || x.towers - y.towers; });
+  var cap = rowCap(), shown = all.slice(0, cap);
+  var h = '<table><tr><th>Moves</th><th>Ends</th><th>Twr</th><th>Path</th></tr>';
+  shown.forEach(function(p){
+    h += '<tr><td class="num">' + p.len + ' <span class="mut">(' + nextMove + '–' + (nextMove + p.len - 1) + ')</span></td>' +
+         '<td>' + (p.endAlt === 1 ? '<span class="tw" style="vertical-align:baseline">tower</span>' : '<span class="mut">ground</span>') + '</td>' +
+         '<td class="num mut">' + p.towers + '</td>' +
+         '<td class="pth">' + pathHTML(a, alt, p.ops, tset) + '</td></tr>';
+  });
+  h += '</table>';
+  if(!all.length) h = '<div class="mut">No legal route from ' + a + ' to ' + b + ' in ' +
+    (lo === hi ? lo + ' move' + (lo === 1 ? '' : 's') : lo + '–' + hi + ' moves') +
+    ' starting on ' + (alt ? 'a tower' : 'the ground') + '.</div>';
+  $('out-connect').innerHTML = h;
+  status('connect', ctx, shown.length, all.length);
+}
+$('cn-run').onclick = runConnect;
+
+// ── Ladder ───────────────────────────────────────────────────────────────────
+function runLadder(){
+  var cfg = {
+    score:+$('ld-score').value, move:+$('ld-move').value, alt:+$('ld-alt').value,
+    gap:Math.max(1, +$('ld-gap').value), steps:Math.max(1, +$('ld-steps').value),
+    pool:ladderPool(), maxChains:2000, perLeg:20,
+    ctx:limits({maxTowers:Math.max(1, +$('ld-tw').value)})
+  };
+  var r = ladder(cfg);
+  var tset = new Set(targets());
+  var cap = rowCap(), shown = r.chains.slice(0, cap);
+  var h = '';
+  shown.forEach(function(c, idx){
+    var seq = [cfg.score].concat(c.legs.map(function(l){ return l.v; }));
+    var moves = c.legs.map(function(l){ return l.move; });
+    h += '<div class="chain"><div class="chainhead">' +
+         '<span class="chainseq">' + seq.join(' → ') + '</span>' +
+         '<span class="mut">moves ' + [cfg.move].concat(moves).join(', ') + '</span>' +
+         '<span class="mut">ends on ' + (c.legs[c.legs.length-1].alt ? 'a tower' : 'the ground') + '</span>' +
+         '<span class="mut">≥' + c.towers + ' towers</span>' +
+         '<button class="sm" data-i="' + idx + '">routes</button></div>' +
+         '<div class="chainops" id="ch' + idx + '" hidden></div></div>';
+  });
+  if(!r.chains.length) h = '<div class="mut">No chain of ' + cfg.steps + ' clue values fits. ' +
+    'Try a different gap, altitude, or pool.</div>';
+  $('out-ladder').innerHTML = h;
+  Array.prototype.forEach.call($('out-ladder').querySelectorAll('button[data-i]'), function(b){
+    b.onclick = function(){
+      var i = +b.dataset.i, box = $('ch' + i);
+      if(!box.dataset.built){
+        var c = shown[i], from = cfg.score, fa = cfg.alt, hh = '';
+        c.legs.forEach(function(l){
+          hh += '<div class="note" style="margin:6px 0 2px">' + from + ' → ' + l.v +
+                ' &nbsp;<span class="mut">' + l.count + ' route' + (l.count === 1 ? '' : 's') +
+                (l.count > l.paths.length ? ', first ' + l.paths.length + ' shown' : '') + '</span></div>';
+          l.paths.forEach(function(p){
+            hh += '<div class="pth">' + pathHTML(from, fa, p.ops, tset) + '</div>';
+          });
+          from = l.v; fa = l.alt;
+        });
+        box.innerHTML = hh; box.dataset.built = '1';
+      }
+      box.hidden = !box.hidden;
+    };
+  });
+  status('ladder', cfg.ctx, shown.length, r.chains.length,
+    r.capped ? '<span class="warn">chain cap reached</span>' : null);
+}
+$('ld-run').onclick = runLadder;
+
+// ── Matrix ───────────────────────────────────────────────────────────────────
+function runMatrix(){
+  var vals = targets().slice().sort(function(a, b){ return a - b; });
+  var move = +$('mx-move').value, gap = Math.max(1, +$('mx-gap').value), alt = +$('mx-alt').value;
+  var baltRaw = $('mx-balt').value, balt = baltRaw === '' ? null : +baltRaw;
+  var ctx = limits();
+  var m = matrix(vals, move - 1, gap, alt, balt, ctx);
+  var h = '<table class="mx"><tr><th>from \\ to</th>' +
+    vals.map(function(v){ return '<th>' + v + '</th>'; }).join('') + '</tr>';
+  var live = 0;
+  for(var i = 0; i < vals.length; i++){
+    h += '<tr><td class="hd">' + vals[i] + '</td>';
+    for(var j = 0; j < vals.length; j++){
+      var c = m.grid[i][j];
+      if(c === null){ h += '<td class="self">—</td>'; continue; }
+      if(!c.n){ h += '<td class="n">·</td>'; continue; }
+      live++;
+      h += '<td class="y" data-a="' + vals[i] + '" data-b="' + vals[j] + '" ' +
+           'title="' + c.n + ' route' + (c.n === 1 ? '' : 's') + ': ' + c.to0 + ' end on the ground, ' +
+           c.to1 + ' end on a tower">' + c.n + '</td>';
+    }
+    h += '</tr>';
+  }
+  h += '</table>';
+  $('out-matrix').innerHTML = h;
+  Array.prototype.forEach.call($('out-matrix').querySelectorAll('td.y'), function(td){
+    td.onclick = function(){
+      $('cn-a').value = td.dataset.a; $('cn-b').value = td.dataset.b;
+      $('cn-move').value = move; $('cn-alt').value = alt;
+      $('cn-balt').value = baltRaw; $('cn-min').value = gap; $('cn-max').value = gap;
+      $('tabs').querySelector('[data-tab=connect]').click();
+      runConnect();
+    };
+  });
+  status('matrix', ctx, live, live,
+    'moves ' + move + '–' + (move + gap - 1) + ', starting on ' + (alt ? 'a tower' : 'the ground') +
+    ' &middot; hover a cell for the ground/tower split');
+}
+$('mx-run').onclick = runMatrix;
+
+// enter submits the visible panel
+document.addEventListener('keydown', function(e){
+  if(e.key !== 'Enter') return;
+  if(e.target.tagName !== 'INPUT' && e.target.tagName !== 'SELECT') return;
+  ({explore:runExplore, connect:runConnect, ladder:runLadder, matrix:runMatrix})[tab]();
+});
+
+$('runtests').onclick = function(){
+  var r = spTests(true);
+  $('testout').innerHTML = r.passed + '/' + r.total + ' passed' +
+    (r.fails.length ? ' — <span class="warn">see console</span>' : ' — see console for detail');
+};
+
+runExplore();
+var _r = spTests(false);
+console.log('Score Paths ready — self-tests ' + _r.passed + '/' + _r.total + '. Run spTests(true) for detail.');
+</script>
+</body>
+</html>

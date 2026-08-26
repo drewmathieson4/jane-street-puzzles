@@ -1,0 +1,460 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Knight Moves 7 — score explorer</title>
+<style>
+:root{--bg:#f4f5f7;--panel:#fff;--ink:#1b1f24;--muted:#6b7280;--line:#d7dbe0;
+  --add:#64748b;--mul:#2563eb;--div:#ea580c;--bad:#dc2626;--good:#15803d;--accent:#4338ca}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);
+  font:14px/1.45 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif}
+h1{font-size:16px;margin:0;font-weight:650}
+h2{font-size:11px;margin:0 0 8px;text-transform:uppercase;letter-spacing:.09em;
+  color:var(--muted);font-weight:650}
+button{font:inherit;background:#fff;border:1px solid var(--line);border-radius:7px;
+  padding:5px 10px;cursor:pointer;white-space:nowrap;color:var(--ink)}
+button:hover:not(:disabled){background:#eef0f3}
+button.on{background:var(--ink);color:#fff;border-color:var(--ink)}
+button.primary{background:var(--accent);color:#fff;border-color:var(--accent)}
+button.sm{padding:2px 7px;font-size:12px}
+input,select{font:inherit;border:1px solid var(--line);border-radius:6px;padding:4px 7px;background:#fff;color:var(--ink)}
+.mono{font-family:ui-monospace,SFMono-Regular,Menlo,monospace}
+#top{display:flex;align-items:center;gap:10px;padding:9px 14px;background:var(--panel);
+  border-bottom:1px solid var(--line);flex-wrap:wrap;position:sticky;top:0;z-index:10}
+.seg{display:flex;border:1px solid var(--line);border-radius:8px;overflow:hidden}
+.seg button{border:0;border-radius:0;border-right:1px solid var(--line)}
+.seg button:last-child{border-right:0}
+.grow{flex:1}
+#wrap{padding:16px;display:flex;flex-direction:column;gap:12px;max-width:1180px}
+.card{background:var(--panel);border:1px solid var(--line);border-radius:11px;padding:13px 14px}
+.row{display:flex;gap:14px;align-items:flex-end;flex-wrap:wrap}
+.f{display:flex;flex-direction:column;gap:3px}
+.f label{font-size:11px;text-transform:uppercase;letter-spacing:.05em;color:var(--muted);font-weight:650}
+.mut{color:var(--muted)}
+.warn{color:var(--bad);font-weight:600}
+.okc{color:var(--good);font-weight:600}
+table{border-collapse:collapse;width:100%;font-size:12.5px}
+th{text-align:left;font-weight:600;color:var(--muted);font-size:11px;text-transform:uppercase;
+  letter-spacing:.05em;padding:3px 7px 6px;border-bottom:1px solid var(--line)}
+td{padding:4px 7px;border-bottom:1px solid #eef0f2;vertical-align:top}
+.op{font-weight:700;font-family:ui-monospace,Menlo,monospace}
+.op.add{color:var(--add)} .op.mul{color:var(--mul)} .op.div{color:var(--div)}
+.chip{display:inline-block;border:1px solid var(--line);border-radius:999px;padding:1px 9px;
+  font-size:11.5px;margin:2px 3px 2px 0;cursor:pointer;background:#fff;user-select:none}
+.chip.on{background:#111827;color:#fff;border-color:#111827}
+.scroll{max-height:520px;overflow:auto}
+details summary{cursor:pointer}
+.pathline{font-family:ui-monospace,Menlo,monospace;font-size:12px;line-height:1.7}
+.badge{display:inline-block;font-size:10.5px;border-radius:4px;padding:0 5px;
+  border:1px solid var(--line);color:var(--muted)}
+.badge.g{background:#f3f4f6}
+.badge.t{background:#e0e7ff;border-color:#c7d2fe;color:#3730a3}
+</style>
+</head>
+<body>
+
+<div id="top">
+  <h1>Score explorer</h1>
+  <div class="seg" id="tabs">
+    <button data-tab="explore">Explore</button>
+    <button data-tab="connect">Connect two scores</button>
+  </div>
+  <span class="grow"></span>
+  <a href="knight-sandbox.html"><button>&larr; Sandbox</button></a>
+</div>
+
+<div id="wrap">
+  <div class="card" id="intro">
+    <h2>What this does</h2>
+    <p style="margin:0 0 8px">Pure score arithmetic — it ignores the board. On move <b>N</b> the
+    score either <b class="op add">+N</b> (level move), <b class="op mul">&times;N</b> (up) or
+    <b class="op div">&divide;N</b> (down, only when it divides evenly). Altitude is 0 or 1, so:</p>
+    <table style="max-width:620px"><thead><tr><th>standing on</th><th>allowed</th><th>result</th></tr></thead>
+      <tbody>
+      <tr><td><span class="badge g">ground</span></td>
+          <td><b class="op add">+N</b> or <b class="op mul">&times;N</b></td>
+          <td>stays ground / rises to tower</td></tr>
+      <tr><td><span class="badge t">tower</span></td>
+          <td><b class="op add">+N</b> or <b class="op div">&divide;N</b></td>
+          <td>stays tower / drops to ground</td></tr>
+      </tbody></table>
+    <p class="mut" style="margin:8px 0 0">So <b>&times;</b> and <b>&divide;</b> must alternate, with
+    any run of <b>+</b> between them — you can never multiply twice or divide twice without the
+    other in between. Anything this finds still has to be realisable on the board; check it in the
+    sandbox.</p>
+  </div>
+
+  <div class="card" id="panel"></div>
+  <div class="card" id="results"><span class="mut">Set the inputs and press Search.</span></div>
+</div>
+
+<script>
+/* ===================== ENGINE ===================== */
+
+const CLUES = [0,1,16,23,37,88,138,272,449,528,750,1100];
+const CLUECELL = {0:'a1',1:'g3',16:'e4',23:'d6',37:'f8',88:'d3',138:'f6',
+                  272:'f3',449:'b4',528:'a5',750:'b3',1100:'h8'};
+
+/* Recording moments: 0,3,...,18 then every K>3. With 12 clue cells there are 5 late
+   records, so 18+5K <= 63 and K is in 4..9. */
+function isRecordMove(m, K){
+  if (m < 0) return false;
+  if (m <= 18) return m % 3 === 0;
+  if (K) return (m - 18) % K === 0;
+  for (let k = 4; k <= 9; k++) if ((m - 18) % k === 0) return true;
+  return false;
+}
+function whichK(m){
+  if (m <= 18) return [];
+  const ks = []; for (let k=4;k<=9;k++) if ((m-18)%k===0) ks.push(k);
+  return ks;
+}
+
+function addState(map, score, alt, prevKey, op, N){
+  const key = score + '|' + alt;
+  let n = map.get(key);
+  if (!n){ n = {score, alt, parents:[]}; map.set(key, n); }
+  if (n.parents.length < 4) n.parents.push({prevKey, op, N});
+  return n;
+}
+
+/* BFS forward. seeds: [{score, alt}]. move0 = the move number of the FIRST step. */
+function search(seeds, move0, depth, cap, maxStates){
+  const levels = [new Map()];
+  seeds.forEach(s => levels[0].set(s.score+'|'+s.alt, {score:s.score, alt:s.alt, parents:[]}));
+  let truncated = false, expanded = 0;
+  for (let d = 0; d < depth; d++){
+    const N = move0 + d, cur = levels[d], next = new Map();
+    for (const [key, node] of cur){
+      const s = node.score, a = node.alt;
+      expanded++;
+      const sum = s + N;                                  // level move, always legal
+      if (sum <= cap) addState(next, sum, a, key, '+', N);
+      if (a === 0){                                       // ground: may rise
+        const mul = s * N;
+        if (mul <= cap) addState(next, mul, 1, key, '×', N);
+      } else {                                            // tower: may drop, if it divides
+        if (N > 0 && s % N === 0) addState(next, s / N, 0, key, '÷', N);
+      }
+      if (next.size > maxStates){ truncated = true; break; }
+    }
+    levels.push(next);
+    if (truncated || next.size === 0) break;
+  }
+  return {levels, truncated, expanded};
+}
+
+/* Walk parent pointers back to depth 0. Returns up to `limit` distinct routes. */
+function routes(levels, d, key, limit){
+  const out = [];
+  (function walk(dd, kk, acc){
+    if (out.length >= limit) return;
+    if (dd === 0){ out.push(acc.slice().reverse()); return; }
+    const node = levels[dd].get(kk);
+    for (const p of node.parents){
+      const prev = levels[dd-1].get(p.prevKey);
+      acc.push({op:p.op, N:p.N, from:prev.score, to:node.score, alt:node.alt});
+      walk(dd-1, p.prevKey, acc);
+      acc.pop();
+      if (out.length >= limit) return;
+    }
+  })(d, key, []);
+  return out;
+}
+
+const OPCLS = {'+':'add','×':'mul','÷':'div'};
+function fmtRoute(r, startScore){
+  const bits = [`<span class="mut">${startScore}</span>`];
+  r.forEach(s => bits.push(
+    `<span class="op ${OPCLS[s.op]}">${s.op}${s.N}</span> <b>${s.to}</b>` +
+    `<span class="badge ${s.alt?'t':'g'}">${s.alt?'T':'G'}</span>`));
+  return bits.join(' <span class="mut">→</span> ');
+}
+
+/* ===================== UI ===================== */
+
+const $ = id => document.getElementById(id);
+let tab = 'explore';
+const ST = {
+  score:88, move:19, alt:0, depth:12, cap:1000000000, sched:'any', K:0,
+  targets: CLUES.slice(), anyTarget:false,
+  cScore:88, cMove:6, cTo:138, cToMove:9, cAlt:'any', cEndAlt:'any',
+};
+
+function chips(){
+  return CLUES.map(v=>`<span class="chip ${ST.targets.includes(v)?'on':''}" data-t="${v}">${v}
+    <span style="opacity:.6">${CLUECELL[v]}</span></span>`).join('');
+}
+
+function drawPanel(){
+  if (tab === 'explore'){
+    $('panel').innerHTML = `<h2>Explore — what can I land on from here?</h2>
+      <div class="row">
+        <div class="f"><label>current score</label>
+          <input id="score" type="number" min="0" value="${ST.score}" style="width:120px"></div>
+        <div class="f"><label>next move N</label>
+          <input id="move" type="number" min="1" max="63" value="${ST.move}" style="width:96px"></div>
+        <div class="f"><label>standing on</label>
+          <select id="alt"><option value="0"${ST.alt===0?' selected':''}>ground (0)</option>
+            <option value="1"${ST.alt===1?' selected':''}>tower (1)</option></select></div>
+        <div class="f"><label>moves ahead (max 45)</label>
+          <input id="depth" type="number" min="1" max="45" value="${ST.depth}" style="width:96px"></div>
+        <div class="f"><label>score cap</label>
+          <input id="cap" type="number" min="1000" max="1000000000000" value="${ST.cap}" style="width:150px"></div>
+        <div class="f"><label>arrival must be</label>
+          <select id="sched">
+            <option value="any"${ST.sched==='any'?' selected':''}>any move</option>
+            <option value="rec"${ST.sched==='rec'?' selected':''}>a recording move (any K)</option>
+            ${[4,5,6,7,8,9].map(k=>`<option value="k${k}"${ST.sched==='k'+k?' selected':''}>recording move, K=${k}</option>`).join('')}
+          </select></div>
+        <button class="primary" id="go">Search</button>
+      </div>
+      <div style="margin-top:10px">
+        <label style="font-size:11px;text-transform:uppercase;letter-spacing:.05em;color:var(--muted);font-weight:650">
+          land on</label>
+        <div style="margin-top:4px">${chips()}
+          <button class="sm" id="allT">all</button>
+          <button class="sm" id="noneT">none</button>
+          <label style="margin-left:10px;font-size:12.5px">
+            <input type="checkbox" id="anyT" ${ST.anyTarget?'checked':''}> any value (just summarise what's reachable)</label>
+        </div></div>`;
+  } else {
+    $('panel').innerHTML = `<h2>Connect — can score A at move i become score B at move j?</h2>
+      <div class="row">
+        <div class="f"><label>score A</label>
+          <input id="cScore" type="number" min="0" value="${ST.cScore}" style="width:120px"></div>
+        <div class="f"><label>at move i</label>
+          <input id="cMove" type="number" min="0" max="62" value="${ST.cMove}" style="width:88px"></div>
+        <div class="f"><label>A stands on</label>
+          <select id="cAlt">${['any','0','1'].map(v=>`<option value="${v}"${ST.cAlt===v?' selected':''}>${
+            v==='any'?'either':v==='0'?'ground':'tower'}</option>`).join('')}</select></div>
+        <div class="f"><label>score B</label>
+          <input id="cTo" type="number" min="0" value="${ST.cTo}" style="width:120px"></div>
+        <div class="f"><label>at move j</label>
+          <input id="cToMove" type="number" min="1" max="63" value="${ST.cToMove}" style="width:88px"></div>
+        <div class="f"><label>B stands on</label>
+          <select id="cEndAlt">${['any','0','1'].map(v=>`<option value="${v}"${ST.cEndAlt===v?' selected':''}>${
+            v==='any'?'either':v==='0'?'ground':'tower'}</option>`).join('')}</select></div>
+        <div class="f"><label>score cap</label>
+          <input id="cap" type="number" min="1000" max="1000000000000" value="${ST.cap}" style="width:150px"></div>
+        <button class="primary" id="go">Search</button>
+      </div>
+      <div class="mut" style="margin-top:9px">Presets:
+        ${[[0,0,1,'0→1'],[88,6,138,'88→138'],[16,12,23,'16→23'],[23,9,37,'23→37']]
+          .map(([a,i,b,lab])=>`<button class="sm" data-preset="${a},${i},${b}">${lab}</button>`).join(' ')}
+        <span style="margin-left:8px">clue values: ${CLUES.map(v=>`<b>${v}</b> ${CLUECELL[v]}`).join(' · ')}</span>
+      </div>`;
+  }
+}
+
+function readExplore(){
+  ST.score=+$('score').value; ST.move=+$('move').value; ST.alt=+$('alt').value;
+  ST.depth=+$('depth').value; ST.cap=+$('cap').value; ST.sched=$('sched').value;
+  ST.anyTarget=$('anyT').checked;
+  ST.K = ST.sched.startsWith('k') ? +ST.sched.slice(1) : 0;
+}
+function readConnect(){
+  ST.cScore=+$('cScore').value; ST.cMove=+$('cMove').value; ST.cTo=+$('cTo').value;
+  ST.cToMove=+$('cToMove').value; ST.cAlt=$('cAlt').value; ST.cEndAlt=$('cEndAlt').value;
+  ST.cap=+$('cap').value;
+}
+
+function runExplore(){
+  readExplore();
+  if (ST.move < 1) { $('results').innerHTML='<span class="warn">Move numbers start at 1.</span>'; return; }
+  const t0 = performance.now();
+  const {levels, truncated, expanded} = search([{score:ST.score, alt:ST.alt}], ST.move, ST.depth,
+                                               ST.cap, 400000);
+  const ms = Math.round(performance.now()-t0);
+  const want = new Set(ST.targets);
+  const hits = [];
+  for (let d=1; d<levels.length; d++){
+    const arrive = ST.move + d - 1;                       // move number of the arriving step
+    if (ST.sched!=='any' && !isRecordMove(arrive, ST.K)) continue;
+    for (const [key,node] of levels[d]){
+      if (!want.has(node.score)) continue;
+      hits.push({d, arrive, key, node});
+    }
+  }
+  let html = `<h2>Results</h2>
+    <div class="mut" style="margin-bottom:9px">from <b class="mono">${ST.score}</b>
+      on <span class="badge ${ST.alt?'t':'g'}">${ST.alt?'tower':'ground'}</span>,
+      next move <b>N=${ST.move}</b>, ${ST.depth} moves ahead ·
+      ${expanded.toLocaleString()} states in ${ms}ms
+      ${truncated?'<span class="warn">· hit the state cap, results are incomplete</span>':''}</div>`;
+
+  if (!hits.length) html += `<div class="warn">No target value is reachable under these settings.</div>`;
+  else {
+    html += `<table><thead><tr><th>lands on</th><th>cell</th><th>at move</th><th>ends on</th>
+      <th>route</th></tr></thead><tbody>`;
+    hits.sort((a,b)=>a.arrive-b.arrive || a.node.score-b.node.score);
+    hits.forEach(h=>{
+      const rs = routes(levels, h.d, h.key, 6);
+      const ks = whichK(h.arrive);
+      html += `<tr><td class="mono"><b>${h.node.score}</b></td>
+        <td class="mono">${CLUECELL[h.node.score]||''}</td>
+        <td>#${h.arrive}${ks.length?` <span class="mut">K=${ks.join(',')}</span>`:''}</td>
+        <td><span class="badge ${h.node.alt?'t':'g'}">${h.node.alt?'tower':'ground'}</span></td>
+        <td><div class="pathline">${fmtRoute(rs[0], ST.score)}</div>
+          ${rs.length>1?`<details><summary class="mut">${rs.length-1} other route${rs.length>2?'s':''}</summary>
+            ${rs.slice(1).map(r=>`<div class="pathline">${fmtRoute(r, ST.score)}</div>`).join('')}
+            </details>`:''}</td></tr>`;
+    });
+    html += `</tbody></table>`;
+  }
+
+  if (ST.anyTarget){
+    html += `<h2 style="margin-top:14px">Reachable per move</h2><table>
+      <thead><tr><th>move</th><th>distinct scores</th><th>range</th><th>values</th></tr></thead><tbody>`;
+    for (let d=1; d<levels.length; d++){
+      const vals = [...new Set([...levels[d].values()].map(n=>n.score))].sort((a,b)=>a-b);
+      if (!vals.length) continue;
+      html += `<tr><td>#${ST.move+d-1}</td><td>${vals.length}</td>
+        <td class="mono mut">${vals[0]} – ${vals[vals.length-1]}</td>
+        <td class="mono" style="font-size:11px">${vals.length<=60?vals.join(', ')
+          :vals.slice(0,60).join(', ')+` <span class="mut">… +${vals.length-60} more</span>`}</td></tr>`;
+    }
+    html += `</tbody></table>`;
+  }
+  $('results').innerHTML = html;
+}
+
+function runConnect(){
+  readConnect();
+  const span = ST.cToMove - ST.cMove;
+  if (span < 1){ $('results').innerHTML = '<span class="warn">Move j must be after move i.</span>'; return; }
+  if (span > 45){ $('results').innerHTML = '<span class="warn">Keep the gap at 45 moves or fewer — the path is at most 63 moves long.</span>'; return; }
+  const seeds = ST.cAlt==='any' ? [{score:ST.cScore,alt:0},{score:ST.cScore,alt:1}]
+                                : [{score:ST.cScore, alt:+ST.cAlt}];
+  const t0 = performance.now();
+  const {levels, truncated, expanded} = search(seeds, ST.cMove+1, span, ST.cap, 400000);
+  const ms = Math.round(performance.now()-t0);
+  const last = levels[span];
+  const found = [];
+  if (last) for (const [key,node] of last){
+    if (node.score !== ST.cTo) continue;
+    if (ST.cEndAlt!=='any' && node.alt !== +ST.cEndAlt) continue;
+    found.push({key, node});
+  }
+  let html = `<h2>Results</h2>
+    <div class="mut" style="margin-bottom:9px"><b class="mono">${ST.cScore}</b> at move ${ST.cMove}
+      → <b class="mono">${ST.cTo}</b> at move ${ST.cToMove} · ${span} move${span>1?'s':''}
+      (N = ${ST.cMove+1}…${ST.cToMove}) · ${expanded.toLocaleString()} states in ${ms}ms
+      ${truncated?'<span class="warn">· hit the state cap, results are incomplete</span>':''}</div>`;
+  if (!found.length){
+    html += `<div class="warn">Impossible — no sequence of +N / ×N / ÷N gets from ${ST.cScore}
+      to ${ST.cTo} in exactly ${span} move${span>1?'s':''}${
+      ST.cAlt!=='any'?' starting on '+(ST.cAlt==='1'?'a tower':'the ground'):''}.</div>
+      <div class="mut" style="margin-top:6px">That rules the pairing out regardless of the board.</div>`;
+  } else {
+    const total = found.reduce((a,f)=>a+routes(levels, span, f.key, 40).length, 0);
+    html += `<div class="okc" style="margin-bottom:8px">Possible — ${total} route${total>1?'s':''} found.</div>
+      <table><thead><tr><th>ends on</th><th>route</th></tr></thead><tbody>`;
+    found.forEach(f=>{
+      routes(levels, span, f.key, 40).forEach(r=>{
+        html += `<tr><td><span class="badge ${f.node.alt?'t':'g'}">${f.node.alt?'tower':'ground'}</span></td>
+          <td class="pathline">${fmtRoute(r, ST.cScore)}</td></tr>`;
+      });
+    });
+    html += `</tbody></table>`;
+  }
+  $('results').innerHTML = html;
+}
+
+$('tabs').addEventListener('click', e=>{
+  const b = e.target.closest('[data-tab]'); if(!b) return;
+  tab = b.dataset.tab;
+  [...$('tabs').children].forEach(x=>x.classList.toggle('on', x.dataset.tab===tab));
+  drawPanel(); $('results').innerHTML = '<span class="mut">Set the inputs and press Search.</span>';
+});
+
+document.addEventListener('click', e=>{
+  if (e.target.id === 'go'){ tab==='explore' ? runExplore() : runConnect(); return; }
+  const c = e.target.closest('[data-t]');
+  if (c){ const v = +c.dataset.t;
+    ST.targets = ST.targets.includes(v) ? ST.targets.filter(x=>x!==v) : [...ST.targets, v];
+    readExplore(); drawPanel(); return; }
+  if (e.target.id === 'allT'){ readExplore(); ST.targets = CLUES.slice(); drawPanel(); return; }
+  if (e.target.id === 'noneT'){ readExplore(); ST.targets = []; drawPanel(); return; }
+  const p = e.target.closest('[data-preset]');
+  if (p){ const [a,i,b] = p.dataset.preset.split(',').map(Number);
+    ST.cScore=a; ST.cMove=i; ST.cTo=b; drawPanel(); return; }
+});
+document.addEventListener('keydown', e=>{ if (e.key==='Enter') $('go')?.click(); });
+
+/* ===================== SELF-TESTS ===================== */
+function seTests(verbose){
+  const out=[], t=(n,c,x='')=>out.push({n,pass:!!c,x});
+
+  // the worked example from the brief: 88, next move 19, on the ground
+  let r = search([{score:88,alt:0}], 19, 5, 1e9, 400000);
+  const at = (d,s,a)=>r.levels[d].get(s+'|'+a);
+  t('88 +19 = 107 on the ground', !!at(1,107,0));
+  t('88 ×19 = 1672 on a tower',   !!at(1,1672,1));
+  t('no ÷ from the ground',       ![...r.levels[1].values()].some(n=>n.score===88/19));
+  t('+19 +20 = 127',              !!at(2,127,0));
+  t('+19 +20 ×21 = 2667 (tower)', !!at(3,2667,1));
+  t('… +22 = 2689 (still tower)', !!at(4,2689,1));
+  t('… ÷23 blocked, 2689 is not divisible by 23', !at(5,2689/23,0) && 2689%23!==0);
+
+  // altitude gates
+  r = search([{score:100,alt:1}], 5, 1, 1e9, 400000);
+  t('tower: ×5 is not offered', ![...r.levels[1].values()].some(n=>n.score===500));
+  t('tower: ÷5 = 20 to ground', !!r.levels[1].get('20|0'));
+  t('tower: +5 = 105 stays tower', !!r.levels[1].get('105|1'));
+  r = search([{score:101,alt:1}], 5, 1, 1e9, 400000);
+  t('tower: ÷5 refused when it does not divide', !r.levels[1].get('20.2|0') &&
+    [...r.levels[1].values()].every(n=>Number.isInteger(n.score)));
+
+  // × and ÷ must alternate
+  r = search([{score:2,alt:0}], 2, 4, 1e9, 400000);
+  const seqs = [];
+  for (const [k] of r.levels[4]) routes(r.levels,4,k,3).forEach(x=>seqs.push(x.map(s=>s.op).join('')));
+  t('no route contains ×× or ÷÷', seqs.length>0 && !seqs.some(s=>/××|÷÷/.test(s)),
+    seqs.slice(0,4).join(' '));
+
+  // score 0 behaves
+  r = search([{score:0,alt:0}], 1, 3, 1e9, 400000);
+  t('0 +1 = 1', !!r.levels[1].get('1|0'));
+  t('0 ×1 = 0 on a tower', !!r.levels[1].get('0|1'));
+
+  // connect: 88@6 -> 138@9 is arithmetically impossible
+  r = search([{score:88,alt:0},{score:88,alt:1}], 7, 3, 1e9, 400000);
+  t('88 at #6 cannot reach 138 at #9', ![...r.levels[3].values()].some(n=>n.score===138));
+  // and a case that IS possible: 0 at #0 -> 1 at #1
+  r = search([{score:0,alt:0}], 1, 1, 1e9, 400000);
+  t('0 at #0 reaches 1 at #1', [...r.levels[1].values()].some(n=>n.score===1));
+
+  // route reconstruction is faithful
+  r = search([{score:88,alt:0}], 19, 3, 1e9, 400000);
+  const key = '2667|1', rt = routes(r.levels,3,key,1)[0];
+  let s = 88, ok = true;
+  rt.forEach(st=>{ s = st.op==='+' ? s+st.N : st.op==='×' ? s*st.N : s/st.N;
+                   if (s !== st.to) ok = false; });
+  t('replaying a route reproduces its scores', ok && s===2667, 'ended '+s);
+
+  // recording-move helper
+  t('#18 is a recording move', isRecordMove(18,0));
+  t('#19 is not (K>3)', !isRecordMove(19,0));
+  t('#23 is a recording move when K=5', isRecordMove(23,5));
+  t('#23 is not when K=4', !isRecordMove(23,4));
+
+  const fails = out.filter(o=>!o.pass);
+  if (verbose || fails.length){
+    console.group(`seTests: ${out.length-fails.length}/${out.length} passed`);
+    out.forEach(o=>console.log((o.pass?'✓':'✗ FAIL')+'  '+o.n+(o.x?'  → '+o.x:'')));
+    console.groupEnd();
+  }
+  return {passed:out.length-fails.length, total:out.length, fails:fails.map(f=>f.n)};
+}
+window.seTests = seTests;
+
+[...$('tabs').children].forEach(x=>x.classList.toggle('on', x.dataset.tab===tab));
+drawPanel();
+const _r = seTests(false);
+console.log(`Score explorer ready — self-tests ${_r.passed}/${_r.total}. Run seTests(true) for detail.`);
+</script>
+</body>
+</html>
