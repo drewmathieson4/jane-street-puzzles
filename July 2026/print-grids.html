@@ -1,0 +1,149 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Knight Moves 7 — printable grids</title>
+<style>
+@page { size: Letter portrait; margin: 0.4in; }
+*{box-sizing:border-box}
+body{margin:0;background:#eceef1;color:#111827;
+  font:14px/1.45 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif}
+
+.controls{position:sticky;top:0;z-index:5;background:#fff;border-bottom:1px solid #d7dbe0;
+  padding:10px 16px;display:flex;gap:16px;align-items:center;flex-wrap:wrap}
+.controls label{font-size:13px;display:flex;gap:6px;align-items:center}
+button,select,input{font:inherit;border:1px solid #d7dbe0;border-radius:7px;padding:5px 10px;background:#fff}
+button{cursor:pointer}
+button.primary{background:#111827;color:#fff;border-color:#111827}
+.note{font-size:12px;color:#6b7280}
+
+#sheets{padding:18px;display:flex;flex-direction:column;align-items:center;gap:18px}
+.page{width:7.7in;height:10.2in;background:#fff;padding:0;display:grid;gap:0.22in;
+  box-shadow:0 2px 10px rgba(0,0,0,.15)}
+.page.n1{grid-template-columns:1fr;grid-template-rows:1fr}
+.page.n2{grid-template-columns:1fr;grid-template-rows:1fr 1fr}
+.page.n4{grid-template-columns:1fr 1fr;grid-template-rows:1fr 1fr}
+.slot{display:flex;flex-direction:column;align-items:center;justify-content:flex-start;
+  min-width:0;min-height:0}
+.slot .lbl{width:100%;font-size:9.5px;color:#374151;border-bottom:1px solid #9ca3af;
+  padding-bottom:2px;margin-bottom:5px;letter-spacing:.02em;
+  white-space:nowrap;overflow:hidden}
+.slot svg{width:100%;height:auto;max-height:100%}
+
+@media print{
+  body{background:#fff}
+  .controls{display:none}
+  #sheets{padding:0;gap:0;display:block}
+  .page{box-shadow:none;width:100%;height:10.2in;break-after:page;page-break-after:always}
+  .page:last-child{break-after:auto;page-break-after:auto}
+}
+</style>
+</head>
+<body>
+
+<div class="controls">
+  <strong>Printable grids</strong>
+  <label>per page
+    <select id="per"><option value="4" selected>4</option><option value="2">2</option>
+      <option value="1">1</option></select></label>
+  <label>sheets <input id="sheetsN" type="number" min="1" max="20" value="2" style="width:64px"></label>
+  <label><input type="checkbox" id="clues" checked> clue numbers</label>
+  <label><input type="checkbox" id="coords" checked> coordinates</label>
+  <label><input type="checkbox" id="labels" checked> label line</label>
+  <label><input type="checkbox" id="tints"> region shading</label>
+  <button class="primary" onclick="window.print()">Print</button>
+  <span class="note">Letter portrait. 4-up gives ~0.42&Prime; cells; use 2-up if you want room for
+    four-digit scores.</span>
+</div>
+
+<div id="sheets"></div>
+
+<script>
+/* Same board data as the sandbox — see PUZZLE.md for how it was extracted. */
+const REGION = [
+  [ 0, 0, 0, 0, 0, 1, 1, 1],
+  [ 2, 2, 2, 3, 3, 4, 4, 1],
+  [ 2, 5, 2, 3, 3, 3, 4, 1],
+  [ 6, 5, 5, 7, 7, 8, 4, 4],
+  [ 6, 6, 5, 7, 7, 8, 8, 9],
+  [ 6,10, 5,11, 8, 8,12, 9],
+  [ 6,10,11,11,11,12,12, 9],
+  [10,10,10,11,12,12, 9, 9],
+].flat();
+const RTINT = ['#ffd9e2','#ffe7c4','#fdf6bd','#e2f6c2','#c6f0d6','#c2ecf2','#cfe0fb',
+               '#ded9f0','#f2d9f7','#f8dcd0','#dee8d2','#d3e7f0','#f0e6d2'];
+const FILES = 'abcdefgh';
+const CLUE = {};
+[['f8',37],['h8',1100],['d6',23],['f6',138],['a5',528],['b4',449],['e4',16],
+ ['b3',750],['d3',88],['f3',272],['g3',1],['a1',0]]
+  .forEach(([n,v]) => CLUE[(8-Number(n[1]))*8 + FILES.indexOf(n[0])] = v);
+
+const CS = 40, M = 14, W = M*2 + CS*8;      // svg user units
+
+function grid(){
+  const showClue = document.getElementById('clues').checked;
+  const showCo   = document.getElementById('coords').checked;
+  const tint     = document.getElementById('tints').checked;
+  const P = [`<svg viewBox="0 0 ${W} ${W}" xmlns="http://www.w3.org/2000/svg">`];
+  P.push(`<rect width="${W}" height="${W}" fill="#fff"/>`);
+
+  for (let i=0;i<64;i++){
+    const x = M + (i%8)*CS, y = M + Math.floor(i/8)*CS;
+    if (tint) P.push(`<rect x="${x}" y="${y}" width="${CS}" height="${CS}" fill="${RTINT[REGION[i]]}"/>`);
+    if (showClue && CLUE[i]!==undefined){
+      const t = String(CLUE[i]), w = 6 + t.length*4.6;
+      P.push(`<rect x="${x+2.5}" y="${y+2}" width="${w}" height="9" rx="4.5" fill="#fff"
+        stroke="#111827" stroke-width=".7"/>`);
+      P.push(`<text x="${x+2.5+w/2}" y="${y+8.8}" font-size="7" text-anchor="middle"
+        font-weight="700" fill="#111827"
+        font-family="ui-monospace,Menlo,monospace">${t}</text>`);
+    }
+  }
+  for (let r=0;r<8;r++) for (let c=0;c<8;c++){
+    const i=r*8+c, x=M+c*CS, y=M+r*CS;
+    if (c<7){ const th = REGION[i]!==REGION[i+1];
+      P.push(`<line x1="${x+CS}" y1="${y}" x2="${x+CS}" y2="${y+CS}"
+        stroke="${th?'#111827':'#c3c8ce'}" stroke-width="${th?2.6:.6}"/>`); }
+    if (r<7){ const th = REGION[i]!==REGION[i+8];
+      P.push(`<line x1="${x}" y1="${y+CS}" x2="${x+CS}" y2="${y+CS}"
+        stroke="${th?'#111827':'#c3c8ce'}" stroke-width="${th?2.6:.6}"/>`); }
+  }
+  P.push(`<rect x="${M}" y="${M}" width="${CS*8}" height="${CS*8}" fill="none"
+    stroke="#111827" stroke-width="3"/>`);
+
+  if (showCo){
+    for (let c=0;c<8;c++){
+      P.push(`<text x="${M+c*CS+CS/2}" y="${M-4.5}" font-size="7.5" text-anchor="middle"
+        fill="#6b7280">${FILES[c]}</text>`);
+      P.push(`<text x="${M+c*CS+CS/2}" y="${W-3.5}" font-size="7.5" text-anchor="middle"
+        fill="#6b7280">${FILES[c]}</text>`);
+    }
+    for (let r=0;r<8;r++){
+      P.push(`<text x="${M-4.5}" y="${M+r*CS+CS/2+2.6}" font-size="7.5" text-anchor="end"
+        fill="#6b7280">${8-r}</text>`);
+      P.push(`<text x="${W-M+4.5}" y="${M+r*CS+CS/2+2.6}" font-size="7.5"
+        fill="#6b7280">${8-r}</text>`);
+    }
+  }
+  return P.join('') + '</svg>';
+}
+
+function build(){
+  const per = +document.getElementById('per').value;
+  const n   = +document.getElementById('sheetsN').value;
+  const lbl = document.getElementById('labels').checked;
+  const g   = grid();
+  const slot = `<div class="slot">${lbl
+    ? '<div class="lbl">attempt _________&nbsp; towers ___/13&nbsp; K = ___</div>'
+    : ''}${g}</div>`;
+  let html = '';
+  for (let p=0;p<n;p++) html += `<div class="page n${per}">${slot.repeat(per)}</div>`;
+  document.getElementById('sheets').innerHTML = html;
+}
+
+['per','sheetsN','clues','coords','labels','tints']
+  .forEach(id => document.getElementById(id).addEventListener('input', build));
+build();
+</script>
+</body>
+</html>

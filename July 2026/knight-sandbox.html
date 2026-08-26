@@ -1,0 +1,1209 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Knight Moves 7 — Sandbox</title>
+<style>
+:root{
+  --bg:#f4f5f7; --panel:#ffffff; --ink:#1b1f24; --muted:#6b7280; --line:#d7dbe0;
+  --level:#64748b; --up:#2563eb; --down:#ea580c; --bad:#dc2626; --good:#15803d;
+  --accent:#4338ca;
+}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);
+  font:14px/1.45 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;}
+h1{font-size:16px;margin:0;font-weight:650;letter-spacing:-.01em}
+h2{font-size:11px;margin:0 0 8px;text-transform:uppercase;letter-spacing:.09em;color:var(--muted);font-weight:650}
+button{font:inherit;background:#fff;color:var(--ink);border:1px solid var(--line);
+  border-radius:7px;padding:5px 9px;cursor:pointer;white-space:nowrap}
+button:hover:not(:disabled){background:#eef0f3}
+button:disabled{opacity:.4;cursor:not-allowed}
+button.on{background:var(--ink);color:#fff;border-color:var(--ink)}
+button.sm{padding:2px 7px;font-size:12px}
+input,select,textarea{font:inherit;border:1px solid var(--line);border-radius:6px;
+  padding:4px 7px;background:#fff;color:var(--ink)}
+.mono{font-family:ui-monospace,SFMono-Regular,Menlo,monospace}
+
+#top{display:flex;align-items:center;gap:7px;padding:9px 12px;background:var(--panel);
+  border-bottom:1px solid var(--line);flex-wrap:wrap;position:sticky;top:0;z-index:20}
+.seg{display:flex;border:1px solid var(--line);border-radius:8px;overflow:hidden}
+.seg button{border:0;border-radius:0;border-right:1px solid var(--line)}
+.seg button:last-child{border-right:0}
+.grow{flex:1}
+.hint{color:var(--muted);font-size:12px}
+.vr{width:1px;height:22px;background:var(--line)}
+#modeHint{padding:6px 16px;background:#eef2ff;color:#3730a3;font-size:12.5px;
+  border-bottom:1px solid var(--line)}
+
+#wrap{display:flex;gap:16px;padding:16px;align-items:flex-start}
+#boardCol{flex:0 0 auto}
+#side{flex:1 1 auto;min-width:350px;max-width:470px;display:flex;flex-direction:column;gap:12px}
+.card{background:var(--panel);border:1px solid var(--line);border-radius:11px;padding:12px 13px}
+.card.scroll{max-height:300px;overflow:auto}
+
+.strip{border-radius:9px;padding:9px 12px;margin:8px 16px 0;display:none}
+.strip.show{display:block}
+#banner{background:#fff1f0;border:1px solid #f3b3ad;color:#8a1c14;
+  align-items:center;gap:12px}
+#banner.show{display:flex}
+#conflict{background:#fffbeb;border:1px solid #fcd34d;color:#78350f}
+#storeWarn{background:#fffbeb;border:1px solid #fcd34d;color:#78350f}
+
+table{border-collapse:collapse;width:100%;font-size:12.5px}
+th{text-align:left;font-weight:600;color:var(--muted);font-size:11px;text-transform:uppercase;
+  letter-spacing:.05em;padding:2px 6px 5px;border-bottom:1px solid var(--line)}
+td{padding:3px 6px;border-bottom:1px solid #eef0f2;vertical-align:middle}
+tr.click{cursor:pointer}
+tr.click:hover td{background:#eef2ff}
+tr.act td{background:#e0e7ff}
+
+.stat{display:flex;justify-content:space-between;padding:3px 0;font-size:13px}
+.stat b{font-weight:600;font-variant-numeric:tabular-nums}
+.pillrow{display:flex;flex-wrap:wrap;gap:5px;margin-top:6px}
+.pill{border:1px solid var(--line);border-radius:999px;padding:1px 9px;font-size:11.5px;background:#fff}
+.pill.ok{background:#dcfce7;border-color:#86efac;color:#14532d}
+.pill.dim{color:var(--muted);text-decoration:line-through}
+.dot{display:inline-block;width:9px;height:9px;border-radius:50%;margin-right:6px;vertical-align:-1px}
+.warn{color:var(--bad);font-weight:600}
+.okc{color:var(--good);font-weight:600}
+.mut{color:var(--muted)}
+hr.s{border:0;border-top:1px solid var(--line);margin:8px 0}
+
+#tip{position:fixed;pointer-events:none;background:#111827;color:#fff;padding:6px 9px;
+  border-radius:7px;font-size:12px;z-index:99;display:none;white-space:nowrap;
+  box-shadow:0 4px 14px rgba(0,0,0,.25)}
+
+dialog{border:1px solid var(--line);border-radius:12px;padding:16px;max-width:640px;width:90vw;
+  background:var(--panel);color:var(--ink)}
+dialog::backdrop{background:rgba(0,0,0,.35)}
+#ioText{width:100%;height:220px;font:12px/1.4 ui-monospace,Menlo,monospace}
+#notes{width:100%;height:120px;resize:vertical;line-height:1.5}
+svg{display:block}
+.cellhit{cursor:pointer}
+.leg{display:flex;gap:14px;flex-wrap:wrap;font-size:12px;color:var(--muted);margin-top:8px}
+</style>
+</head>
+<body>
+
+<div id="top">
+  <h1>Knight Moves 7</h1>
+  <div class="seg" id="modes">
+    <button data-mode="tower">Towers</button>
+    <button data-mode="path">Path</button>
+    <button data-mode="probe">Probe</button>
+  </div>
+  <div class="seg" id="dirs">
+    <button data-dir="fwd">Forward &rarr;</button>
+    <button data-dir="back">&larr; Backward</button>
+  </div>
+  <button id="stepBack">Drop last</button>
+  <button id="undo">Undo</button>
+  <button id="redo">Redo</button>
+  <span class="vr"></span>
+  <button id="lockBtn">Lock</button>
+  <button id="unlockBtn">Unlock</button>
+  <span class="vr"></span>
+  <label class="hint">Lines
+    <select id="lineMode">
+      <option value="all">all</option>
+      <option value="last10">last 10</option>
+      <option value="locked">locked only</option>
+      <option value="none">none</option>
+    </select>
+  </label>
+  <label class="hint"><input type="checkbox" id="schedChk"> checkpoint checks</label>
+  <span class="grow"></span>
+  <button id="rulesBtn">Rules</button>
+  <button id="saveBtn">Slots</button>
+  <button id="ioBtn">Export</button>
+  <a href="print-grids.html" target="_blank"><button>Print grids</button></a>
+  <button id="resetBtn">Reset</button>
+</div>
+
+<div id="modeHint"></div>
+<div id="storeWarn" class="strip">
+  Autosave is unavailable here, so work will be lost on reload. Use <b>Export / Import</b>,
+  or serve the folder: <code>python3 -m http.server 8731</code> then open
+  <code>http://127.0.0.1:8731/knight-sandbox.html</code>.</div>
+<div id="conflict" class="strip"></div>
+<div id="banner" class="strip"><span id="bannerText"></span><button id="truncBtn">Truncate here</button></div>
+
+<div id="wrap">
+  <div id="boardCol">
+    <svg id="board" width="756" height="756"></svg>
+    <div class="leg">
+      <span><span class="dot" style="background:var(--level)"></span>level +N</span>
+      <span><span class="dot" style="background:var(--up)"></span>up &times;N</span>
+      <span><span class="dot" style="background:var(--down)"></span>down &divide;N</span>
+      <span><b>right-click</b> = ? maybe / &#10007; no tower</span>
+      <span><b>shift-click</b> = pin</span>
+    </div>
+  </div>
+
+  <div id="side">
+    <div class="card" id="statusCard"></div>
+    <div class="card" id="segCard"></div>
+    <div class="card scroll" id="legalCard"></div>
+    <div class="card scroll" id="logCard"></div>
+    <div class="card scroll" id="clueCard"></div>
+    <div class="card scroll" id="towerCard"></div>
+    <div class="card" id="pinCard"></div>
+    <div class="card"><h2>Notes <span class="mut">(saved with your state, included in export)</span></h2>
+      <textarea id="notes" placeholder="Running commentary — what you tried, what it ruled out, why."></textarea></div>
+    <div class="card" id="answerCard"></div>
+  </div>
+</div>
+
+<div id="tip"></div>
+
+<dialog id="rulesDlg">
+  <h2>Rules reference</h2>
+  <p style="margin:0 0 10px">Each of the 13 regions gets exactly one <b>tower</b> (a second cube on
+  one of its squares). A square's altitude is 0 (ground) or 1 (tower). The knight starts on
+  <b class="mono">a1</b> with score <b>0</b> and never revisits a square.</p>
+  <p style="margin:0 0 10px">A move travels 0 units in one dimension, 1 in another and 2 in the
+  third. Altitude only spans 0&ndash;1, so a &plusmn;2 altitude change is impossible and exactly two
+  move families remain:</p>
+  <table>
+    <thead><tr><th>type</th><th>shape</th><th>altitude</th><th>score on move N</th></tr></thead>
+    <tbody>
+      <tr><td><span class="dot" style="background:var(--level)"></span><b>level</b></td>
+          <td>ordinary knight move</td><td>both ends the same</td><td class="mono">score += N</td></tr>
+      <tr><td><span class="dot" style="background:var(--up)"></span><b>up</b></td>
+          <td>straight 2 orthogonally</td><td>ground &rarr; tower</td><td class="mono">score &times;= N</td></tr>
+      <tr><td><span class="dot" style="background:var(--down)"></span><b>down</b></td>
+          <td>straight 2 orthogonally</td><td>tower &rarr; ground</td>
+          <td class="mono">score &divide;= N, only if even</td></tr>
+    </tbody></table>
+  <p class="mut" style="margin:10px 0 0">So a knight on a tower can only make an ordinary knight
+  move to <i>another tower</i>, and up/down moves are rook-like two-steppers. Score starts at 0,
+  and 0 divides by anything.</p>
+  <p style="margin:10px 0 0">Scores were recorded at moves 0, 3, 6, &hellip;, 18, then every K moves
+  for some K &gt; 3. A square shows a number <i>iff</i> the knight was on it at a recording moment.
+  Answer = for every unvisited square, sum the scores of its orthogonally adjacent on-path
+  squares; add those sums up.</p>
+  <div style="margin-top:12px"><button onclick="rulesDlg.close()">Close</button></div>
+</dialog>
+
+<dialog id="slotDlg"><h2>Saved slots</h2><div id="slotBody"></div>
+  <div style="margin-top:12px;display:flex;gap:8px">
+    <input id="slotName" placeholder="slot name" style="flex:1">
+    <button id="slotSave">Save current</button>
+    <button onclick="slotDlg.close()">Close</button></div></dialog>
+
+<dialog id="ioDlg"><h2>Export / Import JSON</h2>
+  <textarea id="ioText" spellcheck="false"></textarea>
+  <div style="margin-top:10px;display:flex;gap:8px">
+    <button id="ioLoad">Load from box</button>
+    <button id="ioCopy">Copy</button>
+    <button onclick="ioDlg.close()">Close</button></div></dialog>
+
+<script>
+/* ===================== BOARD DATA =====================
+   Row 0 is rank 8 (top). Column 0 is file a (left).  idx = r*8+c.
+   Start = r7,c0 = a1 = idx 56.  Extracted by pixel-measuring the PNG; see PUZZLE.md. */
+
+const REGION = [
+  [ 0, 0, 0, 0, 0, 1, 1, 1],
+  [ 2, 2, 2, 3, 3, 4, 4, 1],
+  [ 2, 5, 2, 3, 3, 3, 4, 1],
+  [ 6, 5, 5, 7, 7, 8, 4, 4],
+  [ 6, 6, 5, 7, 7, 8, 8, 9],
+  [ 6,10, 5,11, 8, 8,12, 9],
+  [ 6,10,11,11,11,12,12, 9],
+  [10,10,10,11,12,12, 9, 9],
+].flat();
+
+const RNAME = ['I','V','U','P','Z','N','Y','O','F','L','T','X','W'];
+const RTINT = ['#ffd9e2','#ffe7c4','#fdf6bd','#e2f6c2','#c6f0d6','#c2ecf2','#cfe0fb',
+               '#ded9f0','#f2d9f7','#f8dcd0','#dee8d2','#d3e7f0','#f0e6d2'];
+const SEGC  = ['#4338ca','#b45309','#0f766e','#9d174d','#3f6212','#6d28d9'];
+
+const START = 56;                       // a1
+const FILES = 'abcdefgh';
+
+const CLUE = {};
+[['f8',37],['h8',1100],['d6',23],['f6',138],['a5',528],['b4',449],['e4',16],
+ ['b3',750],['d3',88],['f3',272],['g3',1],['a1',0]].forEach(([n,v])=>CLUE[idxOf(n)]=v);
+
+function idxOf(name){ return (8 - Number(name[1]))*8 + FILES.indexOf(name[0]); }
+function nameOf(i){ return FILES[i%8] + (8 - Math.floor(i/8)); }
+function rc(i){ return [Math.floor(i/8), i%8]; }
+function inb(r,c){ return r>=0 && r<8 && c>=0 && c<8; }
+
+const KNIGHT = [[-2,-1],[-2,1],[-1,-2],[-1,2],[1,-2],[1,2],[2,-1],[2,1]];
+const STRAIGHT2 = [[-2,0],[2,0],[0,-2],[0,2]];
+
+/* ===================== STATE =====================
+   A "segment" is a run of consecutive moves. segs[0] is the trunk: it starts at move 0 on
+   a1 with score 0. Extra segments are anchored at a move number you believe you know —
+   handy when you know where the knight lands on move 6 or 18 but not how it got there. */
+
+const S = {
+  towers: [],
+  marks:  {},                                   // idx -> 'cand' | 'out'
+  segs:   [ {start:0, cells:[START], entry:'0'} ],
+  active: 0,
+  dir:    'fwd',
+  lock:   0,                                    // trunk moves locked
+  pins:   [],                                   // {cell, move}
+  notes:  '',
+};
+let undoStack = [], redoStack = [];
+let mode = 'path', probeCell = null, hoverLog = null;
+
+const alt   = i => S.towers.includes(i) ? 1 : 0;
+const clone = o => JSON.parse(JSON.stringify(o));
+const seg   = () => S.segs[S.active];
+
+function snapshot(){
+  undoStack.push(clone(S));
+  if (undoStack.length > 300) undoStack.shift();
+  redoStack = [];
+}
+function restore(src, dst){
+  const s = src.pop(); if (!s) return false;
+  dst.push(clone(S)); Object.assign(S, clone(s));
+  if (S.active >= S.segs.length) S.active = 0;
+  return true;
+}
+
+/* ===================== MOVE ENGINE =====================
+   (dx,dy,dz) is a signed permutation of (0,1,2). Altitude is 0 or 1, so |dz|=2 can't happen:
+     dz=0   -> ordinary knight move, both ends same altitude, score += N
+     |dz|=1 -> straight 2 orthogonally, score *= N (up) or /= N (down, if divisible) */
+
+function classify(from, to){
+  const [r1,c1] = rc(from), [r2,c2] = rc(to);
+  const dr = r2-r1, dc = c2-c1, ar = Math.abs(dr), ac = Math.abs(dc);
+  const z1 = alt(from), z2 = alt(to);
+  if ((ar===1&&ac===2) || (ar===2&&ac===1)){
+    if (z1===z2) return {type:'level'};
+    return {type:null, reason:'knight move must stay at one altitude ('
+      + (z1?'tower':'ground') + ' → ' + (z2?'tower':'ground') + ')'};
+  }
+  if ((dr===0&&ac===2) || (dc===0&&ar===2)){
+    if (z2===z1+1) return {type:'up'};
+    if (z2===z1-1) return {type:'down'};
+    return {type:null, reason:'a straight 2-step must change altitude by 1 (both '
+      + (z1?'towers':'ground') + ')'};
+  }
+  return {type:null, reason:'not a legal move shape'};
+}
+
+/* forward: score after move N, given score before it */
+function applyScore(score, type, N){
+  if (score === null) return {score:null};
+  const n = BigInt(N);
+  if (type==='level') return {score: score + n};
+  if (type==='up')    return {score: score * n};
+  if (score % n !== 0n) return {bad: score.toString()+' is not divisible by '+N};
+  return {score: score / n};
+}
+
+/* backward: score before move N, given the score after it. Lets you build away from a
+   waypoint whose score you know (e.g. a clue cell at move 18) toward earlier moves. */
+function invScore(score, type, N){
+  if (score === null) return {score:null};
+  const n = BigInt(N);
+  if (type==='level'){
+    const p = score - n;
+    if (p < 0n) return {bad:'that would need a negative score ('+p+')'};
+    return {score:p};
+  }
+  if (type==='up'){
+    if (score % n !== 0n) return {bad:'to arrive at '+score+' by ×'+N+', '+score+' must divide by '+N};
+    return {score: score / n};
+  }
+  return {score: score * n};                       // down: prev = score * N
+}
+
+/* Evaluate one segment forward from its anchor. */
+function evalSeg(sg){
+  const scores = [sg.entry===null ? null : BigInt(sg.entry)];
+  const types = [], seen = new Set([sg.cells[0]]);
+  let broke = null;
+  for (let k = 1; k < sg.cells.length; k++){
+    const from = sg.cells[k-1], to = sg.cells[k], N = sg.start + k;
+    if (seen.has(to)){ broke = {k, reason: nameOf(to)+' is already used in this segment'}; break; }
+    const cl = classify(from, to);
+    if (!cl.type){ broke = {k, reason: cl.reason}; break; }
+    const r = applyScore(scores[k-1], cl.type, N);
+    if (r.bad){ broke = {k, reason: r.bad}; break; }
+    seen.add(to); types.push(cl.type); scores.push(r.score);
+  }
+  return {scores, types, broke, okLen: scores.length - 1};
+}
+
+/* Evaluate every segment and build a board-wide occupancy map. */
+function evaluate(){
+  const segs = S.segs.map(evalSeg);
+  const occ = new Map(), byMove = new Map(), conflicts = [];
+  S.segs.forEach((sg, si) => {
+    const e = segs[si];
+    for (let k = 0; k <= e.okLen; k++){
+      const cell = sg.cells[k], move = sg.start + k;
+      if (occ.has(cell) && occ.get(cell).si !== si)
+        conflicts.push(`${nameOf(cell)} is claimed by segment #${occ.get(cell).si} and #${si}`);
+      else occ.set(cell, {si, k, move, score: e.scores[k]});
+      if (byMove.has(move) && byMove.get(move) !== cell)
+        conflicts.push(`move #${move} is ${nameOf(byMove.get(move))} in one segment and ${nameOf(cell)} in another`);
+      else byMove.set(move, cell);
+    }
+  });
+  return {segs, occ, byMove, conflicts: [...new Set(conflicts)]};
+}
+
+/* Legal continuations. dir 'fwd' extends the head, 'back' extends the tail. */
+function legalFrom(from, score, N, seen, dir){
+  const out = [];
+  const [r,c] = rc(from);
+  for (const [dr,dc] of [...KNIGHT, ...STRAIGHT2]){
+    const r2=r+dr, c2=c+dc; if(!inb(r2,c2)) continue;
+    const to = r2*8+c2;
+    const cl = dir==='back' ? classify(to, from) : classify(from, to);
+    if (!cl.type){ out.push({to, type:null, ok:false, reason:cl.reason, newScore:null}); continue; }
+    if (seen.has(to)){ out.push({to, type:cl.type, ok:false, reason:'already used', newScore:null}); continue; }
+    const res = dir==='back' ? invScore(score, cl.type, N) : applyScore(score, cl.type, N);
+    if (res.bad) out.push({to, type:cl.type, ok:false, reason:res.bad, newScore:null});
+    else out.push({to, type:cl.type, ok:true, reason:null, newScore:res.score});
+  }
+  return out;
+}
+
+function probeFrom(from){
+  const out = []; const [r,c] = rc(from);
+  for (const [dr,dc] of [...KNIGHT,...STRAIGHT2]){
+    const r2=r+dr, c2=c+dc; if(!inb(r2,c2)) continue;
+    const to = r2*8+c2, cl = classify(from,to);
+    out.push({to, type:cl.type, ok:!!cl.type, reason:cl.reason, newScore:null});
+  }
+  return out;
+}
+/* ===================== BOARD RENDER ===================== */
+
+const M = 34, CS = 86, BW = M*2 + CS*8;
+const board = document.getElementById('board');
+board.setAttribute('width', BW); board.setAttribute('height', BW);
+const CLR = {level:'#64748b', up:'#2563eb', down:'#ea580c'};
+const cx = i => M + (i%8)*CS + CS/2;
+const cy = i => M + Math.floor(i/8)*CS + CS/2;
+const esc = s => String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;');
+const fmt = v => v===null ? '?' : v.toString();
+
+let EV = evaluate();
+
+/* The growing end of the active segment, plus what the next move number and score are. */
+function head(){
+  const sg = seg(), e = EV.segs[S.active];
+  if (S.dir === 'back')
+    return {from: sg.cells[0], N: sg.start, score: e.scores[0], atEnd:false};
+  return {from: sg.cells[e.okLen], N: sg.start + e.okLen + 1, score: e.scores[e.okLen], atEnd:true};
+}
+function canGoBack(){ return seg().start >= 1; }
+
+function currentLegal(){
+  if (mode === 'probe') return probeCell===null ? [] : probeFrom(probeCell);
+  const e = EV.segs[S.active];
+  if (e.broke) return [];
+  if (S.dir === 'back' && !canGoBack()) return [];
+  const h = head();
+  const seen = new Set(EV.occ.keys());
+  return legalFrom(h.from, h.score, h.N, seen, S.dir);
+}
+
+function trim(x1,y1,x2,y2,d){
+  const dx=x2-x1, dy=y2-y1, L=Math.hypot(dx,dy)||1, ux=dx/L*d, uy=dy/L*d;
+  return [x1+ux, y1+uy, x2-ux, y2-uy];
+}
+function line(x1,y1,x2,y2,thick){
+  return `<line x1="${x1}" y1="${y1}" x2="${x2}" y2="${y2}"
+    stroke="${thick?'#111827':'#b8bfc7'}" stroke-width="${thick?5:1}"/>`;
+}
+
+function drawBoard(){
+  const P = [];
+  P.push(`<defs>
+    ${['level','up','down'].map(t=>
+      `<marker id="ah-${t}" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="5"
+        markerHeight="5" orient="auto-start-reverse">
+        <path d="M0,0 L10,5 L0,10 z" fill="${CLR[t]}"/></marker>`).join('')}
+    <pattern id="noTower" width="9" height="9" patternUnits="userSpaceOnUse"
+      patternTransform="rotate(45)">
+      <line x1="0" y1="0" x2="0" y2="9" stroke="#6b7280" stroke-width="3" stroke-opacity=".38"/>
+    </pattern></defs>`);
+
+  for (let i = 0; i < 64; i++){
+    const x = M + (i%8)*CS, y = M + Math.floor(i/8)*CS;
+    P.push(`<rect x="${x}" y="${y}" width="${CS}" height="${CS}" fill="${RTINT[REGION[i]]}"/>`);
+
+    if (S.marks[i] === 'out')                       // "no tower here" — hatched
+      P.push(`<rect x="${x}" y="${y}" width="${CS}" height="${CS}" fill="url(#noTower)"/>`);
+
+    if (S.towers.includes(i)){                      // raised cube
+      const m = 11, lift = 7, w = CS-2*m, h = CS-2*m;
+      P.push(`<rect x="${x+m}" y="${y+m}" width="${w}" height="${h}" rx="5" fill="rgba(0,0,0,.16)"/>`);
+      P.push(`<rect x="${x+m}" y="${y+m-lift+h-6}" width="${w}" height="${lift+6}" rx="4"
+        fill="rgba(0,0,0,.30)"/>`);
+      P.push(`<rect x="${x+m}" y="${y+m-lift}" width="${w}" height="${h}" rx="5"
+        fill="${RTINT[REGION[i]]}" stroke="#111827" stroke-width="2"/>`);
+      P.push(`<rect x="${x+m}" y="${y+m-lift}" width="${w}" height="${h}" rx="5"
+        fill="#ffffff" fill-opacity=".35"/>`);
+    }
+
+    const o = EV.occ.get(i), lifted = S.towers.includes(i) ? -7 : 0;
+    if (o){
+      const sc = fmt(o.score), clue = CLUE[i];
+      let fill = '#111827';
+      if (clue !== undefined && o.score !== null)
+        fill = (BigInt(clue) === o.score) ? '#15803d' : '#dc2626';
+      else if (o.score === null) fill = '#6b7280';
+      const fs = sc.length > 6 ? 15 : sc.length > 4 ? 19 : 24;
+      P.push(`<text x="${x+CS/2}" y="${y+CS/2+lifted+8}" font-size="${fs}" font-weight="700"
+        text-anchor="middle" fill="${fill}" font-family="ui-monospace,Menlo,monospace">${sc}</text>`);
+      P.push(`<text x="${x+CS-6}" y="${y+16}" font-size="11.5" text-anchor="end"
+        fill="${S.segs.length>1?SEGC[o.si%SEGC.length]:'#374151'}" font-weight="650">#${o.move}</text>`);
+      if (S.segs.length > 1)
+        P.push(`<rect x="${x+2}" y="${y+2}" width="4" height="${CS-4}" rx="2"
+          fill="${SEGC[o.si%SEGC.length]}" fill-opacity=".8"/>`);
+    }
+
+    if (CLUE[i] !== undefined){
+      const txt = String(CLUE[i]), w = 15 + txt.length*7.5;
+      P.push(`<rect x="${x+7}" y="${y+4}" width="${w}" height="17" rx="8.5" fill="#fff"
+        stroke="#111827" stroke-width="1.3"/>`);
+      P.push(`<text x="${x+7+w/2}" y="${y+16.5}" font-size="11.5" text-anchor="middle"
+        font-weight="700" fill="#111827" font-family="ui-monospace,Menlo,monospace">${txt}</text>`);
+    }
+
+    const mk = S.marks[i];
+    if (mk) P.push(`<text x="${x+CS-6}" y="${y+CS-6}" font-size="16" text-anchor="end"
+      font-weight="700" fill="${mk==='cand'?'#b45309':'#4b5563'}">${mk==='cand'?'?':'✗'}</text>`);
+
+    const pin = S.pins.find(p=>p.cell===i);
+    if (pin){
+      const bad = o && o.move !== pin.move;
+      P.push(`<text x="${x+6}" y="${y+CS-6}" font-size="12.5" font-weight="700"
+        fill="${bad?'#dc2626':'#4338ca'}">◉${pin.move}</text>`);
+    }
+    if (i === START && !o)
+      P.push(`<text x="${x+CS/2}" y="${y+CS-8}" font-size="11" text-anchor="middle"
+        fill="#6b7280">start</text>`);
+  }
+
+  for (let r=0;r<8;r++) for(let c=0;c<8;c++){
+    const i=r*8+c, x=M+c*CS, y=M+r*CS;
+    if (c<7) P.push(line(x+CS,y,x+CS,y+CS, REGION[i]!==REGION[i+1]));
+    if (r<7) P.push(line(x,y+CS,x+CS,y+CS, REGION[i]!==REGION[i+8]));
+  }
+  P.push(`<rect x="${M}" y="${M}" width="${CS*8}" height="${CS*8}" fill="none"
+    stroke="#111827" stroke-width="6"/>`);
+
+  const lm = document.getElementById('lineMode').value;
+  if (lm !== 'none'){
+    S.segs.forEach((sg, si) => {
+      const e = EV.segs[si];
+      const first = lm==='last10' ? Math.max(1, e.okLen-9) : 1;
+      for (let k = first; k <= e.okLen; k++){
+        const mvNo = sg.start + k;
+        const locked = si===0 && mvNo <= S.lock;
+        if (lm==='locked' && !locked) continue;
+        const a = sg.cells[k-1], b = sg.cells[k], ty = e.types[k-1];
+        const hot = hoverLog === mvNo && si === S.active;
+        const [ax,ay,bx,by] = trim(cx(a),cy(a),cx(b),cy(b),26);
+        P.push(`<line x1="${ax}" y1="${ay}" x2="${bx}" y2="${by}"
+          stroke="${hot?'#111827':CLR[ty]}" stroke-width="${hot?5.5:locked?4:3}"
+          stroke-opacity="${hot?1:locked?.8:.55}"
+          ${locked?'':'stroke-dasharray="7 5"'} marker-end="url(#ah-${ty})"/>`);
+      }
+    });
+  }
+
+  const h = head();
+  P.push(`<rect x="${M+(h.from%8)*CS+3}" y="${M+Math.floor(h.from/8)*CS+3}"
+    width="${CS-6}" height="${CS-6}" rx="6" fill="none"
+    stroke="${SEGC[S.active%SEGC.length]}" stroke-width="3.5"
+    ${S.dir==='back'?'stroke-dasharray="8 5"':''}/>`);
+
+  const eA = EV.segs[S.active];
+  if (eA.broke){
+    const b = seg().cells[eA.broke.k];
+    P.push(`<rect x="${M+(b%8)*CS+2}" y="${M+Math.floor(b/8)*CS+2}" width="${CS-4}"
+      height="${CS-4}" fill="none" stroke="#dc2626" stroke-width="4"/>`);
+  }
+
+  for (const mv of currentLegal()){
+    const X = cx(mv.to), Y = cy(mv.to);
+    if (mv.ok) P.push(`<circle cx="${X}" cy="${Y}" r="11" fill="${CLR[mv.type]}"
+      fill-opacity=".85" stroke="#fff" stroke-width="2"/>`);
+    else P.push(`<circle cx="${X}" cy="${Y}" r="8" fill="none" stroke="#9ca3af"
+      stroke-width="2" stroke-dasharray="3 3"/>`);
+  }
+  if (mode==='probe' && probeCell!==null)
+    P.push(`<rect x="${M+(probeCell%8)*CS+3}" y="${M+Math.floor(probeCell/8)*CS+3}"
+      width="${CS-6}" height="${CS-6}" rx="6" fill="none" stroke="#b45309"
+      stroke-width="3.5" stroke-dasharray="6 4"/>`);
+
+  for (let c=0;c<8;c++){
+    P.push(`<text x="${M+c*CS+CS/2}" y="${M-11}" font-size="12" text-anchor="middle"
+      fill="#6b7280" font-weight="600">${FILES[c]}</text>`);
+    P.push(`<text x="${M+c*CS+CS/2}" y="${BW-M+20}" font-size="12" text-anchor="middle"
+      fill="#6b7280" font-weight="600">${FILES[c]}</text>`);
+  }
+  for (let r=0;r<8;r++){
+    P.push(`<text x="${M-12}" y="${M+r*CS+CS/2+4}" font-size="12" text-anchor="end"
+      fill="#6b7280" font-weight="600">${8-r}</text>`);
+    P.push(`<text x="${BW-M+12}" y="${M+r*CS+CS/2+4}" font-size="12"
+      fill="#6b7280" font-weight="600">${8-r}</text>`);
+  }
+  for (let i=0;i<64;i++)
+    P.push(`<rect class="cellhit" data-i="${i}" x="${M+(i%8)*CS}" y="${M+Math.floor(i/8)*CS}"
+      width="${CS}" height="${CS}" fill="transparent"/>`);
+
+  board.innerHTML = P.join('');
+}
+/* ===================== SIDE PANELS ===================== */
+
+const $ = id => document.getElementById(id);
+
+function drawStatus(){
+  const h = head(), towerSet = new Set(S.towers);
+  const cells = [...EV.occ.keys()];
+  const visitedTowers = cells.filter(i=>towerSet.has(i)).length;
+  const clueHits = cells.filter(i=>CLUE[i]!==undefined).length;
+  const legal = currentLegal().filter(m=>m.ok).length;
+  const per = {}; S.towers.forEach(i=>per[REGION[i]]=(per[REGION[i]]||0)+1);
+  const filled = Object.values(per).filter(n=>n>0).length;
+  const over = Object.entries(per).filter(([,n])=>n>1).map(([r])=>RNAME[r]);
+  const totalMoves = EV.segs.reduce((a,e)=>a+e.okLen,0);
+
+  let html = `<h2>Status</h2>
+    <div class="stat"><span>building ${S.dir==='back'?'backward from':'forward from'}</span>
+      <b class="mono">${nameOf(h.from)}</b></div>
+    <div class="stat"><span>next move is N =</span>
+      <b>${S.dir==='back' && !canGoBack() ? '—' : h.N}</b></div>
+    <div class="stat"><span>score there</span><b class="mono">${fmt(h.score)}</b></div>
+    <hr class="s">
+    <div class="stat"><span>squares placed</span><b>${cells.length}/64</b></div>
+    <div class="stat"><span>moves across all segments</span><b>${totalMoves}</b></div>
+    <div class="stat"><span>regions with a tower</span>
+      <b class="${filled===13?'okc':''}">${filled}/13</b></div>
+    <div class="stat"><span>towers visited</span>
+      <b class="${S.towers.length&&visitedTowers===S.towers.length?'okc':''}">${visitedTowers}/${S.towers.length}</b></div>
+    <div class="stat"><span>clue cells placed</span><b>${clueHits}/12</b></div>
+    <div class="stat"><span>legal moves from here</span>
+      <b class="${legal===0?'warn':''}">${legal}</b></div>`;
+
+  if (over.length) html += `<div class="warn" style="margin-top:6px">⚠ more than one tower in
+    region ${over.join(', ')}</div>`;
+  if (legal===0 && !EV.segs[S.active].broke && !(S.dir==='back'&&!canGoBack()))
+    html += `<div class="warn" style="margin-top:6px">⚠ dead end — nothing legal from here</div>`;
+  if (S.towers.length===13 && filled===13 && visitedTowers===13)
+    html += `<div class="okc" style="margin-top:6px">✓ all 13 towers are on a segment</div>`;
+  if ($('schedChk').checked) html += scheduleHtml();
+  $('statusCard').innerHTML = html;
+}
+
+function scheduleHtml(){
+  const at = m => EV.byMove.get(m);
+  const sc = m => { const c = at(m); return c===undefined ? undefined : EV.occ.get(c).score; };
+  const bad = [];
+  for (let t=0; t<=18; t++){
+    const cell = at(t); if (cell===undefined) continue;
+    const want = (t%3===0), isC = CLUE[cell]!==undefined;
+    if (isC !== want) bad.push(`#${t} ${nameOf(cell)} ${want?'should be a clue cell':'should not be a clue cell'}`);
+    else if (want && isC && sc(t)!==null && BigInt(CLUE[cell])!==sc(t))
+      bad.push(`#${t} ${nameOf(cell)} says ${CLUE[cell]}, your score is ${sc(t)}`);
+  }
+  const maxMove = Math.max(0, ...[...EV.byMove.keys()]);
+  let ks = [];
+  for (let K=4; K<=9; K++){
+    let ok = true, hits = 0;
+    for (let t=19; t<=maxMove; t++){
+      const cell = at(t); if (cell===undefined) continue;
+      const want = ((t-18)%K===0), isC = CLUE[cell]!==undefined;
+      if (isC !== want){ ok=false; break; }
+      if (want){ hits++; if (sc(t)!==null && BigInt(CLUE[cell])!==sc(t)){ ok=false; break; } }
+    }
+    if (ok && hits<=5) ks.push(K);
+  }
+  const pills = [4,5,6,7,8,9].map(K=>`<span class="pill ${ks.includes(K)?'ok':'dim'}">${K}</span>`).join('');
+  return `<hr class="s"><h2 style="margin-bottom:4px">Checkpoint checks</h2>
+    ${bad.length ? bad.map(b=>`<div class="warn">✗ ${esc(b)}</div>`).join('')
+                 : '<div class="okc">✓ schedule consistent so far</div>'}
+    <div style="margin-top:6px" class="mut">feasible K</div><div class="pillrow">${pills}</div>`;
+}
+
+function drawSegs(){
+  const rows = S.segs.map((sg, si) => {
+    const e = EV.segs[si], last = sg.start + e.okLen;
+    return `<tr class="click ${si===S.active?'act':''}" data-seg="${si}">
+      <td style="width:14px"><span class="dot" style="background:${SEGC[si%SEGC.length]}"></span></td>
+      <td>${si===0?'<b>trunk</b>':'<b>#'+si+'</b>'}</td>
+      <td class="mono">#${sg.start}–#${last}</td>
+      <td class="mono">${nameOf(sg.cells[0])}→${nameOf(sg.cells[e.okLen])}</td>
+      <td class="mono ${sg.entry===null?'mut':''}">${sg.entry===null?'score ?':sg.entry}</td>
+      <td>${si===0?'':`<button class="sm" data-delseg="${si}">✕</button>`}</td></tr>`;
+  }).join('');
+  const sg = seg(), known = CLUE[sg.cells[0]] !== undefined;
+  $('segCard').innerHTML = `<h2>Segments
+      <span class="mut">— anchor a run at a move you already know</span></h2>
+    <table><tbody>${rows}</tbody></table>
+    <div style="margin-top:9px;display:flex;gap:6px;align-items:center;flex-wrap:wrap">
+      <span class="mut">new:</span>
+      <input id="segCell" placeholder="cell" style="width:64px">
+      <input id="segMove" type="number" min="1" max="63" placeholder="move #" style="width:82px">
+      <button id="segAdd">Add segment</button>
+    </div>
+    <div style="margin-top:8px;display:flex;gap:6px;align-items:center;flex-wrap:wrap">
+      <span class="mut">segment ${S.active===0?'trunk':'#'+S.active} entry score:</span>
+      <input id="segEntry" value="${sg.entry===null?'':sg.entry}" placeholder="unknown"
+        style="width:96px" ${S.active===0?'disabled':''}>
+      <button id="segEntrySet" class="sm" ${S.active===0?'disabled':''}>set</button>
+      ${known?'<span class="mut">(from the clue)</span>':''}
+    </div>
+    <div class="mut" style="margin-top:6px;font-size:11.5px">Leave the entry score blank if you
+      don't know it — moves are still checked for shape and altitude, but ÷ moves can't be
+      verified and scores show as <b>?</b>.</div>`;
+}
+
+function drawLegal(){
+  const list = currentLegal();
+  const h = mode==='probe' ? null : head();
+  const where = mode==='probe' ? (probeCell===null?'—':nameOf(probeCell)) : nameOf(h.from);
+  let html = `<h2>Legal from ${where}${
+    mode==='probe' ? ' <span class="mut">(probe: geometry only)</span>'
+    : ` <span class="mut">· ${S.dir==='back'?'undoing':'move'} N=${h.N} · score ${fmt(h.score)}</span>`}</h2>`;
+  if (mode==='probe' && probeCell===null) html += `<div class="mut">Click any square.</div>`;
+  else if (EV.segs[S.active].broke) html += `<div class="warn">This segment is broken — fix it first.</div>`;
+  else if (S.dir==='back' && !canGoBack()) html += `<div class="mut">This segment already starts at move 0.</div>`;
+  else {
+    html += `<table><tbody>`;
+    list.sort((a,b)=>(b.ok-a.ok)||a.to-b.to).forEach(m=>{
+      const col = m.type ? CLR[m.type] : '#9ca3af';
+      html += `<tr class="click" data-go="${m.to}" data-ok="${m.ok?1:0}">
+        <td style="width:22px"><span class="dot" style="background:${col};${m.ok?'':'opacity:.35'}"></span></td>
+        <td class="mono" style="width:34px"><b>${nameOf(m.to)}</b></td>
+        <td style="width:52px" class="mut">${m.type||'—'}</td>
+        <td>${m.ok ? (m.newScore!==null ? `→ <b class="mono">${m.newScore}</b>`
+                                        : '<span class="mut">ok (score unknown)</span>')
+                   : `<span class="mut">✗ ${esc(m.reason)}</span>`}</td></tr>`;
+    });
+    html += `</tbody></table>`;
+  }
+  $('legalCard').innerHTML = html;
+}
+
+function drawLog(){
+  const sg = seg(), e = EV.segs[S.active];
+  let html = `<h2>Move log — segment ${S.active===0?'trunk':'#'+S.active}
+      <span class="mut">(click a row to cut back to it)</span></h2>
+    <table><thead><tr><th>#</th><th>move</th><th>type</th><th>score</th><th></th></tr></thead><tbody>`;
+  html += `<tr><td>${sg.start}</td><td class="mono">${nameOf(sg.cells[0])}</td>
+    <td class="mut">${sg.start===0?'start':'anchor'}</td>
+    <td class="mono"><b>${fmt(e.scores[0])}</b></td><td></td></tr>`;
+  for (let k=1; k<=e.okLen; k++){
+    const ty = e.types[k-1], mvNo = sg.start + k;
+    html += `<tr class="click" data-rew="${k}" data-t="${mvNo}">
+      <td>${mvNo}</td>
+      <td class="mono">${nameOf(sg.cells[k-1])}→<b>${nameOf(sg.cells[k])}</b></td>
+      <td><span class="dot" style="background:${CLR[ty]}"></span>${ty}</td>
+      <td class="mono"><b>${fmt(e.scores[k])}</b></td>
+      <td>${S.active===0&&mvNo<=S.lock?'🔒':''}${
+        CLUE[sg.cells[k]]!==undefined && e.scores[k]!==null
+          ? (BigInt(CLUE[sg.cells[k]])===e.scores[k]?' <span class="okc">✓clue</span>'
+                                                    :' <span class="warn">✗clue</span>') : ''}</td></tr>`;
+  }
+  if (e.broke) html += `<tr><td class="warn">${sg.start+e.broke.k}</td>
+    <td class="mono warn">${nameOf(sg.cells[e.broke.k-1])}→${nameOf(sg.cells[e.broke.k])}</td>
+    <td colspan="3" class="warn">${esc(e.broke.reason)}</td></tr>`;
+  $('logCard').innerHTML = html + `</tbody></table>`;
+}
+
+function drawClues(){
+  const rows = Object.keys(CLUE).map(Number).sort((a,b)=>CLUE[a]-CLUE[b]).map(i=>{
+    const o = EV.occ.get(i), pin = S.pins.find(p=>p.cell===i);
+    if (!o) return `<tr><td class="mono">${nameOf(i)}</td><td class="mono">${CLUE[i]}</td>
+      <td class="mut">${pin?'pinned #'+pin.move:'not placed'}</td><td></td></tr>`;
+    const ok = o.score!==null && BigInt(CLUE[i])===o.score;
+    return `<tr><td class="mono">${nameOf(i)}</td><td class="mono">${CLUE[i]}</td>
+      <td>#${o.move}</td>
+      <td class="mono ${o.score===null?'mut':ok?'okc':'warn'}">${o.score===null?'?':ok?'✓':fmt(o.score)}</td></tr>`;
+  }).join('');
+  $('clueCard').innerHTML = `<h2>Clue cells</h2><table>
+    <thead><tr><th>cell</th><th>given</th><th>move</th><th>your score</th></tr></thead>
+    <tbody>${rows}</tbody></table>`;
+}
+
+function drawTowers(){
+  const byR = {}; for (let i=0;i<64;i++) (byR[REGION[i]] ||= []).push(i);
+  const rows = Object.keys(byR).map(Number).map(r=>{
+    const cells = byR[r], t = cells.filter(i=>S.towers.includes(i));
+    const open = cells.filter(i=>S.marks[i]!=='out' && !S.towers.includes(i));
+    const state = t.length===0
+        ? `<span class="mut">none</span>`
+        : t.length>1 ? `<span class="warn">${t.length} towers</span>`
+        : `<span class="mono"><b>${nameOf(t[0])}</b></span>${
+            EV.occ.has(t[0])?' <span class="okc">✓</span>':''}`;
+    const marks = cells.map(i=>{
+      const m = S.marks[i], tw = S.towers.includes(i);
+      const sty = tw ? 'font-weight:700' : m==='cand' ? 'color:#b45309'
+                : m==='out' ? 'color:#9ca3af;text-decoration:line-through' : 'color:#4b5563';
+      return `<span class="mono" style="${sty}">${nameOf(i)}${tw?'■':m==='cand'?'?':''}</span>`;
+    }).join(' ');
+    return `<tr><td><b>${RNAME[r]}</b></td><td>${state}</td>
+      <td class="${t.length===0&&open.length===1?'okc':'mut'}" style="width:52px">${
+        t.length?'':open.length+' open'}</td>
+      <td style="font-size:11px">${marks}</td></tr>`;
+  }).join('');
+  $('towerCard').innerHTML = `<h2>Tower tracker
+    <span class="mut">— right-click a square for ? / ✗</span></h2><table>
+    <thead><tr><th>region</th><th>tower</th><th></th><th>cells</th></tr></thead>
+    <tbody>${rows}</tbody></table>`;
+}
+
+function drawPins(){
+  const rows = S.pins.slice().sort((a,b)=>a.move-b.move).map((p,k)=>{
+    const o = EV.occ.get(p.cell), atMove = EV.byMove.get(p.move);
+    let note;
+    if (o && o.move===p.move) note = '<span class="okc">✓ matches a segment</span>';
+    else if (o) note = `<span class="warn">✗ placed at #${o.move}</span>`;
+    else if (atMove!==undefined) note = `<span class="warn">✗ #${p.move} is ${nameOf(atMove)}</span>`;
+    else note = `<span class="mut">not yet placed</span>`;
+    return `<tr><td class="mono"><b>${nameOf(p.cell)}</b></td><td>#${p.move}</td>
+      <td>${note}</td>
+      <td><button class="sm" data-seedpin="${k}" title="start a segment here">seed</button>
+          <button class="sm" data-delpin="${k}">✕</button></td></tr>`;
+  }).join('');
+  $('pinCard').innerHTML = `<h2>Pins <span class="mut">(shift-click a square to fill)</span></h2>
+    ${rows?`<table><tbody>${rows}</tbody></table>`:'<div class="mut">No pins yet.</div>'}
+    <div style="margin-top:9px;display:flex;gap:6px">
+      <input id="pinCell" placeholder="cell e.g. f6" style="width:92px">
+      <input id="pinMove" type="number" min="0" max="63" placeholder="move #" style="width:88px">
+      <button id="pinAdd">Add pin</button></div>`;
+}
+
+function drawAnswer(){
+  let total = 0n, unknown = false; const rows = [];
+  for (let i=0;i<64;i++){
+    if (EV.occ.has(i)) continue;
+    const [r,c] = rc(i); let sum = 0n; const parts = [];
+    for (const [dr,dc] of [[-1,0],[1,0],[0,-1],[0,1]]){
+      const r2=r+dr, c2=c+dc; if(!inb(r2,c2)) continue;
+      const o = EV.occ.get(r2*8+c2);
+      if (o){ if(o.score===null){ unknown=true; parts.push(`${nameOf(r2*8+c2)}=?`); }
+              else { sum += o.score; parts.push(`${nameOf(r2*8+c2)}=${o.score}`); } }
+    }
+    total += sum;
+    rows.push(`<tr><td class="mono">${nameOf(i)}</td>
+      <td style="font-size:11px" class="mut">${parts.join(' + ')||'—'}</td>
+      <td class="mono"><b>${sum}</b></td></tr>`);
+  }
+  const oneRegionEach = new Set(S.towers.map(i=>REGION[i])).size===13 && S.towers.length===13;
+  const complete = S.segs.length===1 && !EV.segs[0].broke && !EV.conflicts.length &&
+    oneRegionEach && S.towers.every(i=>EV.occ.has(i)) && !unknown;
+  $('answerCard').innerHTML = `<h2>Answer</h2>
+    <div style="font-size:22px;font-weight:700" class="mono">${total}</div>
+    <div class="${complete?'okc':'mut'}" style="margin-bottom:8px">${complete
+      ? '✓ from one complete path (13 towers, all visited)'
+      : 'provisional — '+(S.segs.length>1?'path is still in separate segments':'path is not complete')
+        +(unknown?', and some scores are unknown':'')} · ${rows.length} unplaced squares</div>
+    <details><summary style="cursor:pointer" class="mut">show per-square breakdown</summary>
+      <table style="margin-top:6px"><thead><tr><th>square</th><th>neighbours on a segment</th>
+      <th>sum</th></tr></thead><tbody>${rows.join('')}</tbody></table></details>`;
+}
+
+const HINTS = {
+  tower: '<b>Towers:</b> left-click places or removes a tower · <b>right-click</b> marks a square '
+       + '<b>? maybe</b> then <b>✗ no tower</b> (hatched) · shift-click pins a move number.',
+  path:  '<b>Path:</b> click a coloured dot to move. Use <b>Forward</b> to extend the head, '
+       + '<b>Backward</b> to work back from a known landing square. Add a segment below to '
+       + 'start from a move you already know.',
+  probe: '<b>Probe:</b> click any square to inspect what it can reach. Nothing is changed.',
+};
+
+function render(){
+  EV = evaluate();
+  if (S.dir==='back' && !canGoBack() && mode==='path') { /* leave it; UI explains */ }
+  drawBoard(); drawStatus(); drawSegs(); drawLegal(); drawLog();
+  drawClues(); drawTowers(); drawPins(); drawAnswer();
+  $('modeHint').innerHTML = HINTS[mode];
+  if ($('notes').value !== S.notes) $('notes').value = S.notes;
+
+  const e = EV.segs[S.active];
+  $('banner').classList.toggle('show', !!e.broke);
+  if (e.broke) $('bannerText').innerHTML =
+    `Segment ${S.active===0?'trunk':'#'+S.active} breaks at move <b>#${seg().start+e.broke.k}</b>
+     (${nameOf(seg().cells[e.broke.k-1])}→${nameOf(seg().cells[e.broke.k])}):
+     ${esc(e.broke.reason)}. Later moves in it are ignored.`;
+  $('conflict').classList.toggle('show', EV.conflicts.length>0);
+  $('conflict').innerHTML = EV.conflicts.map(c=>'⚠ '+esc(c)).join('<br>');
+
+  const sg = seg();
+  $('stepBack').textContent = S.dir==='back' ? 'Drop first' : 'Drop last';
+  $('stepBack').disabled = sg.cells.length<=1 ||
+    (S.active===0 && S.dir==='fwd' && sg.cells.length-1 <= S.lock);
+  $('undo').disabled = !undoStack.length;
+  $('redo').disabled = !redoStack.length;
+  $('unlockBtn').disabled = S.lock === 0;
+  $('lockBtn').disabled = S.active!==0 || EV.segs[0].okLen <= S.lock;
+  $('lockBtn').textContent = `Lock #${EV.segs[0].okLen}`;
+  [...$('dirs').children].forEach(b=>b.classList.toggle('on', b.dataset.dir===S.dir));
+  save();
+}
+/* ===================== INTERACTION ===================== */
+
+const tip = $('tip');
+function showTip(e, html){ tip.innerHTML = html; tip.style.display='block';
+  tip.style.left = (e.clientX+14)+'px'; tip.style.top = (e.clientY+14)+'px'; }
+function hideTip(){ tip.style.display='none'; }
+
+board.addEventListener('contextmenu', e => {
+  const hit = e.target.closest('.cellhit'); if (!hit) return;
+  e.preventDefault();
+  const i = +hit.dataset.i;
+  snapshot();
+  S.marks[i] = S.marks[i]==='cand' ? 'out' : S.marks[i]==='out' ? undefined : 'cand';
+  if (!S.marks[i]) delete S.marks[i];
+  render();
+});
+
+function extend(to){
+  const sg = seg();
+  snapshot();
+  if (S.dir === 'back'){
+    const e = EV.segs[S.active];
+    const cl = classify(to, sg.cells[0]);
+    const prev = invScore(e.scores[0], cl.type, sg.start);
+    sg.cells.unshift(to);
+    sg.start -= 1;
+    sg.entry = prev.score===null ? null : prev.score.toString();
+  } else {
+    const e = EV.segs[S.active];
+    sg.cells = sg.cells.slice(0, e.okLen+1);
+    sg.cells.push(to);
+  }
+  render();
+}
+
+board.addEventListener('click', e => {
+  const hit = e.target.closest('.cellhit'); if (!hit) return;
+  const i = +hit.dataset.i;
+  if (e.shiftKey){ const f=$('pinCell'); if(f){ f.value = nameOf(i); $('pinMove').focus(); } return; }
+  if (mode === 'probe'){ probeCell = i; render(); return; }
+  if (mode === 'tower'){
+    snapshot();
+    const k = S.towers.indexOf(i);
+    if (k >= 0) S.towers.splice(k,1); else S.towers.push(i);
+    S.towers.sort((a,b)=>a-b);
+    render(); return;
+  }
+  if (EV.segs[S.active].broke) return;
+  const mv = currentLegal().find(m => m.to === i && m.ok);
+  if (mv) extend(i);
+});
+
+board.addEventListener('mousemove', e => {
+  const hit = e.target.closest('.cellhit'); if (!hit){ hideTip(); return; }
+  const i = +hit.dataset.i;
+  const mv = currentLegal().find(m => m.to === i);
+  const bits = [`<b>${nameOf(i)}</b> · region ${RNAME[REGION[i]]}${
+    S.towers.includes(i)?' · <b>tower</b>':''}${S.marks[i]==='out'?' · marked no-tower':''}`];
+  if (CLUE[i]!==undefined) bits.push(`clue ${CLUE[i]}`);
+  const o = EV.occ.get(i); if (o) bits.push(`move #${o.move} · score ${fmt(o.score)}`);
+  if (mv && mode!=='tower'){
+    if (mv.ok) bits.push(mode==='probe' ? `${mv.type} move`
+      : `${mv.type} · ${S.dir==='back'?'before':'after'} move ${head().N} → score <b>${fmt(mv.newScore)}</b>`);
+    else bits.push(`✗ ${mv.reason}`);
+  }
+  showTip(e, bits.join('<br>'));
+});
+board.addEventListener('mouseleave', hideTip);
+
+document.addEventListener('click', e => {
+  const go = e.target.closest('[data-go]');
+  if (go && +go.dataset.ok===1 && mode!=='probe'){ extend(+go.dataset.go); return; }
+
+  const sel = e.target.closest('[data-seg]');
+  if (sel && !e.target.closest('[data-delseg]')){ S.active = +sel.dataset.seg; render(); return; }
+
+  const del = e.target.closest('[data-delseg]');
+  if (del){ snapshot(); S.segs.splice(+del.dataset.delseg,1);
+            if (S.active>=S.segs.length) S.active=S.segs.length-1; render(); return; }
+
+  const rew = e.target.closest('[data-rew]');
+  if (rew){
+    const k = +rew.dataset.rew, sg = seg();
+    if (S.active===0 && sg.start+k < S.lock){ alert('That move is locked. Unlock first.'); return; }
+    snapshot(); sg.cells = sg.cells.slice(0, k+1); render(); return;
+  }
+  const dp = e.target.closest('[data-delpin]');
+  if (dp){ snapshot(); S.pins.splice(+dp.dataset.delpin,1); render(); return; }
+
+  const sp = e.target.closest('[data-seedpin]');
+  if (sp){ const p = S.pins[+sp.dataset.seedpin]; addSegment(p.cell, p.move); return; }
+
+  if (e.target.id === 'pinAdd'){
+    const cell = $('pinCell').value.trim().toLowerCase(), mv = $('pinMove').value;
+    if (!/^[a-h][1-8]$/.test(cell) || mv===''){ alert('Enter a cell like f6 and a move number.'); return; }
+    snapshot();
+    const i = idxOf(cell);
+    S.pins = S.pins.filter(p => p.cell !== i);
+    S.pins.push({cell:i, move:+mv});
+    render(); return;
+  }
+  if (e.target.id === 'segAdd'){
+    const cell = $('segCell').value.trim().toLowerCase(), mv = $('segMove').value;
+    if (!/^[a-h][1-8]$/.test(cell) || mv===''){ alert('Enter a cell like f6 and a move number.'); return; }
+    addSegment(idxOf(cell), +mv); return;
+  }
+  if (e.target.id === 'segEntrySet'){
+    const v = $('segEntry').value.trim();
+    if (v!=='' && !/^\d+$/.test(v)){ alert('Enter a whole number, or leave it blank for unknown.'); return; }
+    snapshot(); seg().entry = v===''?null:v; render(); return;
+  }
+});
+
+function addSegment(cell, move){
+  if (move < 1){ alert('Move 0 is the trunk start (a1). Anchor extra segments at move 1 or later.'); return; }
+  snapshot();
+  const entry = CLUE[cell]!==undefined ? String(CLUE[cell]) : null;
+  S.segs.push({start:move, cells:[cell], entry});
+  S.active = S.segs.length-1;
+  S.dir = 'fwd';
+  render();
+}
+
+document.addEventListener('mouseover', e => {
+  const r = e.target.closest('[data-t]');
+  const t = r ? +r.dataset.t : null;
+  if (t !== hoverLog){ hoverLog = t; drawBoard(); }
+});
+
+$('modes').addEventListener('click', e => {
+  const b = e.target.closest('[data-mode]'); if(!b) return;
+  mode = b.dataset.mode;
+  [...$('modes').children].forEach(x => x.classList.toggle('on', x.dataset.mode===mode));
+  render();
+});
+$('dirs').addEventListener('click', e => {
+  const b = e.target.closest('[data-dir]'); if(!b) return;
+  S.dir = b.dataset.dir; render();
+});
+
+$('stepBack').onclick = () => {
+  const sg = seg();
+  if (sg.cells.length<=1) return;
+  snapshot();
+  if (S.dir==='back'){
+    const e = EV.segs[S.active];
+    sg.cells.shift(); sg.start += 1;
+    sg.entry = e.scores[1]===null ? null : e.scores[1].toString();
+  } else {
+    if (S.active===0 && sg.cells.length-1 <= S.lock){ undoStack.pop(); return; }
+    sg.cells.pop();
+  }
+  render();
+};
+$('undo').onclick = () => { if (restore(undoStack, redoStack)) render(); };
+$('redo').onclick = () => { if (restore(redoStack, undoStack)) render(); };
+$('lockBtn').onclick = () => { snapshot(); S.lock = EV.segs[0].okLen; render(); };
+$('unlockBtn').onclick = () => { snapshot(); S.lock = 0; render(); };
+$('lineMode').onchange = render;
+$('schedChk').onchange = render;
+$('notes').oninput = () => { S.notes = $('notes').value; save(); };
+$('truncBtn').onclick = () => {
+  const e = EV.segs[S.active];
+  if (e.broke){ snapshot(); seg().cells = seg().cells.slice(0, e.broke.k); render(); }
+};
+$('resetBtn').onclick = () => {
+  if (!confirm('Clear towers, marks, segments, pins and notes?')) return;
+  snapshot();
+  Object.assign(S, {towers:[], marks:{}, segs:[{start:0,cells:[START],entry:'0'}],
+                    active:0, dir:'fwd', lock:0, pins:[], notes:''});
+  probeCell = null; render();
+};
+
+document.addEventListener('keydown', e => {
+  if (/input|textarea/i.test(e.target.tagName)) return;
+  const meta = e.metaKey || e.ctrlKey;
+  if (meta && e.key.toLowerCase()==='z'){ e.preventDefault();
+    (e.shiftKey ? $('redo') : $('undo')).click(); return; }
+  if (e.key === 'Backspace'){ e.preventDefault(); $('stepBack').click(); return; }
+  if (e.key.toLowerCase() === 'r'){ S.dir = S.dir==='fwd'?'back':'fwd'; render(); return; }
+  const k = {t:'tower', p:'path', b:'probe'}[e.key.toLowerCase()];
+  if (k){ mode = k; [...$('modes').children].forEach(x=>x.classList.toggle('on',x.dataset.mode===mode)); render(); }
+});
+
+/* ===================== PERSISTENCE ===================== */
+
+const KEY = 'km7-state', SLOTS = 'km7-slots';
+function save(){ try{ localStorage.setItem(KEY, JSON.stringify(S)); }catch(_){} }
+function migrate(o){
+  if (o && o.path && !o.segs){                       // pre-segments save file
+    o.segs = [{start:0, cells:o.path, entry:'0'}];
+    delete o.path;
+  }
+  o.active ??= 0; o.dir ??= 'fwd'; o.notes ??= ''; o.pins ??= []; o.marks ??= {};
+  return o;
+}
+function load(){
+  try{
+    const raw = localStorage.getItem(KEY); if(!raw) return;
+    const o = migrate(JSON.parse(raw));
+    if (Array.isArray(o.segs) && o.segs.length && o.segs[0].cells[0]===START) Object.assign(S,o);
+  }catch(_){}
+}
+function getSlots(){ try{ return JSON.parse(localStorage.getItem(SLOTS)||'{}'); }catch(_){ return {}; } }
+
+$('rulesBtn').onclick = () => rulesDlg.showModal();
+$('saveBtn').onclick = () => { drawSlots(); slotDlg.showModal(); };
+function drawSlots(){
+  const s = getSlots(), names = Object.keys(s);
+  $('slotBody').innerHTML = names.length
+    ? `<table><tbody>${names.map(n=>`<tr><td><b>${esc(n)}</b></td>
+        <td class="mut">${(s[n].segs||[]).length} seg · ${s[n].towers.length} towers</td>
+        <td><button class="sm" data-slotload="${esc(n)}">Load</button>
+            <button class="sm" data-slotdel="${esc(n)}">✕</button></td></tr>`).join('')}</tbody></table>`
+    : '<div class="mut">No slots yet.</div>';
+}
+$('slotSave').onclick = () => {
+  const n = $('slotName').value.trim(); if(!n) return;
+  const s = getSlots(); s[n] = clone(S);
+  localStorage.setItem(SLOTS, JSON.stringify(s)); $('slotName').value=''; drawSlots();
+};
+$('slotBody').addEventListener('click', e => {
+  const l = e.target.closest('[data-slotload]'), d = e.target.closest('[data-slotdel]');
+  const s = getSlots();
+  if (l){ snapshot(); Object.assign(S, migrate(clone(s[l.dataset.slotload]))); slotDlg.close(); render(); }
+  if (d){ delete s[d.dataset.slotdel]; localStorage.setItem(SLOTS, JSON.stringify(s)); drawSlots(); }
+});
+
+$('ioBtn').onclick = () => { $('ioText').value = JSON.stringify(S, null, 2); ioDlg.showModal(); };
+$('ioLoad').onclick = () => {
+  try{
+    const o = migrate(JSON.parse($('ioText').value));
+    if (!Array.isArray(o.segs) || o.segs[0].cells[0] !== START) throw 0;
+    snapshot();
+    Object.assign(S, {towers:[],marks:{},segs:[{start:0,cells:[START],entry:'0'}],
+                      active:0,dir:'fwd',lock:0,pins:[],notes:''}, o);
+    ioDlg.close(); render();
+  }catch(_){ alert('That is not a valid saved state.'); }
+};
+$('ioCopy').onclick = () => { $('ioText').select(); document.execCommand('copy'); };
+
+/* ===================== SELF-TESTS ===================== */
+
+function kmTests(verbose){
+  const out = [], keep = clone(S), keepA = S.active, keepD = S.dir;
+  const t = (name, cond, extra='') => out.push({name, pass:!!cond, extra});
+  const set = (tw, cells, start=0, entry='0') => {
+    S.towers = tw.map(idxOf).sort((a,b)=>a-b);
+    S.segs = [{start, cells: cells.map(idxOf), entry}];
+    S.active = 0; S.dir = 'fwd'; EV = evaluate();
+  };
+
+  const sizes = {}; REGION.forEach(r => sizes[r] = (sizes[r]||0)+1);
+  t('64 cells in 13 regions', Object.keys(sizes).length===13 && REGION.length===64);
+  t('twelve 5s and one 4', Object.values(sizes).filter(n=>n===5).length===12 &&
+                           Object.values(sizes).filter(n=>n===4).length===1);
+  t('12 clue cells', Object.keys(CLUE).length===12);
+  t('a1 is the start and reads 0', idxOf('a1')===START && CLUE[START]===0);
+  t('naming round-trips', [...Array(64).keys()].every(i => idxOf(nameOf(i))===i));
+
+  set([], ['a1']);
+  let L = legalFrom(START,0n,1,new Set([START]),'fwd').filter(m=>m.ok).map(m=>nameOf(m.to)).sort();
+  t('a1 plain, no towers → b3, c2 only', L.join()==='b3,c2', L.join());
+
+  set(['c1'], ['a1']);
+  t('tower on c1 → a1→c1 is up', legalFrom(START,0n,1,new Set([START]),'fwd')
+      .some(m=>nameOf(m.to)==='c1' && m.type==='up' && m.ok));
+  set([], ['a1']);
+  t('no tower on a3 → a1→a3 illegal', !legalFrom(START,0n,1,new Set([START]),'fwd')
+      .some(m=>nameOf(m.to)==='a3' && m.ok));
+
+  set(['c1','b3'], ['a1','c1']);
+  L = legalFrom(idxOf('c1'),0n,2,new Set([START,idxOf('c1')]),'fwd').filter(m=>m.ok&&m.type==='level');
+  t('tower→level only to towers', L.every(m=>S.towers.includes(m.to)) && L.some(m=>nameOf(m.to)==='b3'));
+
+  set(['c1'], ['a1']);
+  const dn = legalFrom(idxOf('c1'),7n,2,new Set([idxOf('c1')]),'fwd').find(m=>nameOf(m.to)==='a1');
+  t('7 ÷ 2 refused', dn && !dn.ok && /not divisible/.test(dn.reason));
+  const dn2 = legalFrom(idxOf('c1'),8n,2,new Set([idxOf('c1')]),'fwd').find(m=>nameOf(m.to)==='a1');
+  t('8 ÷ 2 = 4 allowed', dn2 && dn2.ok && dn2.newScore===4n);
+
+  set(['a5','c4'], ['a1','c2','a3','a5','c4']);
+  let e = evalSeg(S.segs[0]);
+  t('level,level,up,level scores 1,3,9,13',
+    !e.broke && e.scores.map(String).join()==='0,1,3,9,13' && e.types.join()==='level,level,up,level');
+
+  set(['a5','c4'], ['a1','c2','a3','a5','c4','a4']);
+  e = evalSeg(S.segs[0]);
+  t('13 ÷ 5 breaks the segment', e.broke && e.broke.k===5);
+
+  set(['c1'], ['a1','c1','a1']);
+  e = evalSeg(S.segs[0]);
+  t('revisiting a1 breaks', e.broke && /already used/.test(e.broke.reason));
+  set(['c1'], ['a1','c1','e1']);
+  e = evalSeg(S.segs[0]);
+  t('0 ×1 then ÷2 stays 0', !e.broke && e.scores.map(String).join()==='0,0,0' &&
+                            e.types.join()==='up,down');
+
+  // ---- backward building: inverse of each op ----
+  t('inv level: 20 before move 4 was 16', invScore(20n,'level',4).score===16n);
+  t('inv up: 20 before ×4 was 5', invScore(20n,'up',4).score===5n);
+  t('inv up refuses non-divisible', !!invScore(21n,'up',4).bad);
+  t('inv down: 5 before ÷4 was 20', invScore(5n,'down',4).score===20n);
+  t('inv level refuses negative', !!invScore(2n,'level',4).bad);
+  // round trip: forward then inverse returns the original
+  t('forward∘inverse round-trips', [['level',7],['up',7],['down',7]].every(([ty,N])=>{
+      const f = applyScore(12n,ty,N); if (f.bad) return true;
+      const b = invScore(f.score,ty,N); return !b.bad && b.score===12n; }));
+
+  // a segment anchored at a clue cell computes forward from the clue value
+  S.towers=[]; S.segs=[{start:0,cells:[START],entry:'0'},
+                       {start:18, cells:[idxOf('f6'),idxOf('e4')], entry:'138'}];
+  S.active=1; EV=evaluate();
+  const e2 = EV.segs[1];
+  t('segment anchored at f6=138 scores 138 then 138+19', !e2.broke &&
+    e2.scores.map(String).join()==='138,157', e2.scores.map(String).join());
+  t('occupancy spans both segments', EV.occ.has(idxOf('f6')) && EV.occ.has(START));
+  t('move numbers come from the anchor', EV.occ.get(idxOf('e4')).move===19);
+
+  // unknown entry score: geometry still checked, scores stay null
+  S.segs=[{start:0,cells:[START],entry:'0'},
+          {start:10, cells:[idxOf('d4'),idxOf('e6')], entry:null}];
+  S.active=1; EV=evaluate();
+  t('unknown entry keeps scores null', EV.segs[1].scores.every(s=>s===null) && !EV.segs[1].broke);
+
+  // conflicts
+  S.segs=[{start:0,cells:[START],entry:'0'},{start:5,cells:[START],entry:null}];
+  EV=evaluate();
+  t('same square in two segments is flagged', EV.conflicts.some(c=>/claimed by segment/.test(c)));
+  S.segs=[{start:0,cells:[START],entry:'0'},{start:0,cells:[idxOf('h8')],entry:null}];
+  EV=evaluate();
+  t('same move number twice is flagged', EV.conflicts.some(c=>/is .* in one segment/.test(c)));
+
+  Object.assign(S, keep); S.active=keepA; S.dir=keepD; EV=evaluate();
+  const fails = out.filter(o=>!o.pass);
+  if (verbose || fails.length){
+    console.group(`kmTests: ${out.length-fails.length}/${out.length} passed`);
+    out.forEach(o => console.log((o.pass?'✓':'✗ FAIL') + '  ' + o.name + (o.extra?'  → '+o.extra:'')));
+    console.groupEnd();
+  }
+  return {passed: out.length-fails.length, total: out.length, fails: fails.map(f=>f.name)};
+}
+window.kmTests = kmTests;
+
+/* ===================== BOOT ===================== */
+try{ const k='km7-probe'; localStorage.setItem(k,'1'); localStorage.removeItem(k); }
+catch(_){ $('storeWarn').classList.add('show'); }
+load();
+[...$('modes').children].forEach(x => x.classList.toggle('on', x.dataset.mode===mode));
+render();
+const _r = kmTests(false);
+console.log(`Knight Moves 7 sandbox ready — self-tests ${_r.passed}/${_r.total}. Run kmTests(true) for detail.`);
+</script>
+</body>
+</html>
