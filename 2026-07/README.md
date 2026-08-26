@@ -3,7 +3,7 @@
 | File | What it is |
 |---|---|
 | `knight-sandbox.html` | the interactive sandbox — double-click to open |
-| `score-explorer.html` | score-arithmetic search: what can this score reach, and how |
+| `score-paths.html`    | score-arithmetic search: what can this score reach, and how |
 | `print-grids.html`    | printable blank grids, 4 to a page |
 | `PUZZLE.md`           | verbatim rules, the extracted board, the derived move set |
 
@@ -72,26 +72,39 @@ should I play next".
 numbers, coordinates, a label line, and region shading. 4-up gives ~0.4" cells; drop to 2-up
 if you want room to write four-digit scores.
 
-## Score explorer
+## Score paths
 
-Pure arithmetic, no board — it answers "from this score, what clue values can I land on, and
-by what sequence of operations". The altitude rule makes the operation order exact rather than
-a guess: on **ground** you may only `+N` (stay) or `×N` (rise); on a **tower** only `+N` (stay)
+Pure arithmetic, no board — it answers "from this score, what can I land on, and by what
+sequence of operations". The altitude rule makes the operation order exact rather than a
+guess: on **ground** you may only `+N` (stay) or `×N` (rise); on a **tower** only `+N` (stay)
 or `÷N` (fall, when it divides evenly). So `×` and `÷` must alternate with any run of `+`
 between them — never two multiplies or two divides in a row.
 
-- **Explore** — give it a score, the next move number N, and whether you're on ground or a
-  tower. It reports every clue value reachable within the next *n* moves, the move number it
-  arrives on, which K values that move is a recording move for, and the full route. Tick
-  "any value" for a per-move summary of everything reachable.
-- **Connect** — "can score A at move i become score B at move j?" A negative answer is a real
-  deduction: it rules the pairing out no matter what the board looks like. For example
-  88 at #6 → 138 at #9 is arithmetically impossible.
-- Search is exhaustive up to the score cap (default 1e9). Depth 45 runs in ~30ms, because `×`
-  overshoots the cap fast and `÷` rarely divides, so the reachable set stays small.
+Four modes:
+
+- **Explore** — from a score, the next move number, and an altitude, list everything reachable
+  within *n* moves. Runs **forward or backward**: backward inverts each operation, so from 138
+  arriving on move 18 it reports that a level arrival came from 120, and a `×18` arrival is
+  impossible because 18 doesn't divide 138. Filter to clue values, to checkpoint moves, or to
+  paths ending on the ground.
+- **Connect** — "can score A at move i become score B at move j?" over a range of move counts.
+  A negative answer is a real deduction: it rules the pairing out whatever the board looks
+  like. Uses meet-in-the-middle, so wide gaps stay fast.
+- **Ladder** — chain clue values checkpoint to checkpoint, each leg a fixed gap, no value
+  reused. This is the "moves 1–18 at gap 3" shape of the puzzle.
+- **Matrix** — for every ordered pair of clue values, how many `gap`-move sequences join them.
+
+Two constraints beyond the arithmetic are baked in, and both prune hard:
+
+- **Tower budget.** An altitude-1 state means standing on a tower, and there are only 13
+  towers, so any path using more than 13 is impossible.
+- **K is 4–9.** 12 clue cells = 7 early records (moves 0, 3, …, 18) plus 5 late ones, so the
+  path reaches move 18+5K, and M ≤ 63 forces K ≤ 9. That makes "K unknown" a real filter
+  rather than a free pass — move 19 can never be a checkpoint, because no K in 4–9 divides 1.
+  Results show which K values each checkpoint is consistent with.
 
 Results are candidates, not answers — a route that works arithmetically still has to be
-realisable as knight moves on the board. Check it in the sandbox.
+realisable as knight moves. Check it in the sandbox.
 
 ## Self-tests
 
@@ -99,7 +112,8 @@ In the sandbox, run `kmTests(true)` in the console — 27 checks covering the bo
 move generation, altitude rules, the divisibility gate, forward and inverse scoring, segment
 anchoring, unknown entry scores, and conflict detection.
 
-In the score explorer, run `seTests(true)` — 21 checks covering the altitude gates, the
-alternation of `×` and `÷`, the divisibility refusal, route replay, and the recording-move
-schedule. The search was also cross-checked against an independent brute-force enumerator on
-six starting positions: identical reachable sets, no misses and no extras.
+In score paths, press **run self-tests** (or call `spTests(true)`) — 38 checks. They include
+exhaustive sweeps proving backward is the exact inverse of forward and that no backward step
+invents an illegal forward move, a replay of every explored path, `connect` cross-checked
+against brute-force enumeration, the tower cap, the move-63 ceiling, and the checkpoint
+schedule including the unknown-K case.

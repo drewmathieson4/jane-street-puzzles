@@ -183,6 +183,11 @@ table.mx td.self{background:#f3f4f6;color:#d1d5db}
         <span id="ld-pool"></span>
         <button class="sm" id="ld-all">all</button><button class="sm" id="ld-none">none</button>
       </div>
+      <div class="row">
+        <span class="hint">Presets:</span>
+        <button class="sm" id="ld-p1">moves 1–18 (gap 3, 6 steps)</button>
+        <span id="ld-p2"></span>
+      </div>
       <div class="note" id="ld-preset"></div>
       <hr class="s">
       <div id="status-ladder"></div>
@@ -280,11 +285,25 @@ function bwdSteps(score, alt, n){
   return out;
 }
 
+// 12 clue cells = 7 early records (0,3,...,18) plus 5 late ones, so the path reaches
+// move 18 + 5K. It visits M+1 <= 64 distinct squares, so M <= 63 and 18 + 5K <= 63.
+// That pins K to 4..9 -- which means "K unknown" is still a real constraint, not a
+// free pass: move 19, for instance, can never be a checkpoint because no K in 4..9
+// divides 1.
+var K_MIN = 4, K_MAX = 9;
+
+function whichK(move){
+  var ks = [];
+  if(move <= 18) return ks;
+  for(var k = K_MIN; k <= K_MAX; k++) if((move - 18) % k === 0) ks.push(k);
+  return ks;
+}
+
 function isCheckpoint(move, K){
   if(move < 0) return false;
   if(move <= 18) return move % 3 === 0;
-  if(!K) return true;               // K unknown: any move past 18 could be one
-  return (move - 18) % K === 0;
+  if(K) return (move - 18) % K === 0;
+  return whichK(move).length > 0;   // K unknown: consistent with at least one K in 4..9
 }
 
 // Count tower squares (altitude 1) along a path, start square included.
@@ -602,6 +621,20 @@ function spTests(verbose){
   ok('move 17 is not', !isCheckpoint(17, 0));
   ok('K=5 puts a checkpoint on 23', isCheckpoint(23, 5));
   ok('K=5 has none on 24', !isCheckpoint(24, 5));
+  // K unknown still constrains: K lives in 4..9, so most moves past 18 are impossible
+  ok('move 19 is never a checkpoint (no K in 4..9 divides 1)', !isCheckpoint(19, 0));
+  ok('move 20 is not either', !isCheckpoint(20, 0));
+  ok('move 22 is a checkpoint, K=4', isCheckpoint(22, 0) && whichK(22).join() === '4');
+  ok('move 24 is a checkpoint, K=6', isCheckpoint(24, 0) && whichK(24).join() === '6');
+  ok('move 54 fits K=4,6,9', whichK(54).join() === '4,6,9', whichK(54).join());
+  ok('whichK is empty at or before move 18', whichK(18).length === 0);
+  var kBad = 0;
+  for(var mk = 19; mk <= 63; mk++){
+    var anyK = false;
+    for(var kk = 4; kk <= 9; kk++) if(isCheckpoint(mk, kk)) anyK = true;
+    if(anyK !== isCheckpoint(mk, 0)) kBad++;
+  }
+  eq('unknown-K agrees with the union over K=4..9', kBad, 0);
 
   // ladder
   var L = ladder({score:0, move:0, alt:0, gap:3, steps:1, pool:[1, 16, 23, 88], maxChains:500});
@@ -652,7 +685,7 @@ function spTests(verbose){
 
 if(typeof module !== 'undefined' && module.exports){
   module.exports = {fwdSteps:fwdSteps, bwdSteps:bwdSteps, explore:explore, connect:connect,
-                    ladder:ladder, matrix:matrix, isCheckpoint:isCheckpoint, newCtx:newCtx,
+                    ladder:ladder, matrix:matrix, isCheckpoint:isCheckpoint, whichK:whichK, newCtx:newCtx,
                     CLUES:CLUES, spTests:spTests};
 }
 </script>
@@ -742,6 +775,23 @@ $('modeHint').textContent = HINTS.explore;
   $('ld-preset').innerHTML = 'Puzzle default: start 0 on move 0, gap 3, 6 steps — that is the six clue values ' +
     'recorded on moves 3, 6, 9, 12, 15, 18. The other five clues are the late records at 18+K, 18+2K, …';
 
+  $('ld-p1').onclick = function(){
+    $('ld-score').value = 0; $('ld-move').value = 0; $('ld-gap').value = 3; $('ld-steps').value = 6;
+    Array.prototype.forEach.call(pool.children, function(p){ p.classList.toggle('on', +p.dataset.v !== 0); });
+    runLadder();
+  };
+  var p2 = $('ld-p2');
+  for(var kk = 4; kk <= 9; kk++) (function(K){
+    var b = document.createElement('button');
+    b.className = 'sm'; b.textContent = 'moves 19+ K=' + K;
+    b.title = 'records at ' + [1,2,3,4,5].map(function(i){ return 18 + i*K; }).join(', ');
+    b.onclick = function(){
+      $('ld-gap').value = K; $('ld-steps').value = 5;
+      runLadder();
+    };
+    p2.appendChild(b);
+  })(kk);
+
   var st = $('mx-steps');
   [[1,'m1→3'],[4,'m4→6'],[7,'m7→9'],[10,'m10→12'],[13,'m13→15'],[16,'m16→18']].forEach(function(p){
     var b = document.createElement('button');
@@ -784,7 +834,11 @@ function runExplore(){
   var h = '<table><tr><th>Move</th><th>Score</th><th>On</th><th>Twr</th><th>Path</th></tr>';
   shown.forEach(function(n){
     var cp = isCheckpoint(n.move, K);
-    h += '<tr><td class="num">' + n.move + (cp ? ' <span class="okc" title="checkpoint">●</span>' : '') + '</td>' +
+    var ks = K ? [] : whichK(n.move);
+    h += '<tr><td class="num">' + n.move +
+         (cp ? ' <span class="okc" title="checkpoint">●</span>' : '') +
+         (cp && ks.length ? ' <span class="mut" style="font-size:10px">K=' + ks.join(',') + '</span>' : '') +
+         '</td>' +
          '<td class="num"><b>' + fmt(n.score) + '</b></td>' +
          '<td>' + (n.alt === 1 ? '<span class="tw" style="vertical-align:baseline">tower</span>' : '<span class="mut">ground</span>') + '</td>' +
          '<td class="num mut">' + n.towers + '</td>' +
@@ -829,6 +883,37 @@ function runConnect(){
 $('cn-run').onclick = runConnect;
 
 // ── Ladder ───────────────────────────────────────────────────────────────────
+// Move-by-move trace of one chain, taking the first route on each leg.
+function traceHTML(cfg, chain){
+  var amb = chain.legs.filter(function(l){ return l.count > 1; }).length;
+  var line = fmt(cfg.score) + (cfg.alt === 1 ? 'T' : '');
+  var rows = '<table><tr><th>Move</th><th>Op</th><th>Score</th><th>Standing on</th></tr>' +
+    '<tr><td class="num">' + cfg.move + '</td><td class="mut">start</td>' +
+    '<td class="num"><b>' + fmt(cfg.score) + '</b></td><td>' +
+    (cfg.alt === 1 ? '<span class="tw" style="vertical-align:baseline">tower</span>' : '<span class="mut">ground</span>') +
+    '</td></tr>';
+  var towers = cfg.alt === 1 ? 1 : 0;
+  chain.legs.forEach(function(l){
+    l.paths[0].ops.forEach(function(o, i){
+      var last = i === l.paths[0].ops.length - 1;
+      if(o.alt === 1) towers++;
+      line += ' ' + SY[o.kind] + o.n + ' ' + fmt(o.score) + (o.alt === 1 ? 'T' : '');
+      rows += '<tr' + (last ? ' style="background:#f0fdf4"' : '') + '>' +
+        '<td class="num">' + o.n + '</td>' +
+        '<td><span class="op ' + o.kind + '">' + SY[o.kind] + o.n + '</span></td>' +
+        '<td class="num">' + (last ? '<b>' + fmt(o.score) + '</b>' : fmt(o.score)) + '</td>' +
+        '<td>' + (o.alt === 1 ? '<span class="tw" style="vertical-align:baseline">tower</span>'
+                              : '<span class="mut">ground</span>') + '</td></tr>';
+    });
+  });
+  rows += '</table>';
+  return '<div class="note" style="margin:2px 0 6px">' +
+      towers + ' tower square' + (towers === 1 ? '' : 's') + ' on this trace' +
+      (amb ? ' &middot; <span class="warn">' + amb + ' leg' + (amb === 1 ? ' has' : 's have') +
+             ' more than one route — this shows the first</span>' : ' &middot; every leg has exactly one route') +
+    '</div><div class="pth" style="line-height:1.7">' + line + '</div>' + rows;
+}
+
 function runLadder(){
   var cfg = {
     score:+$('ld-score').value, move:+$('ld-move').value, alt:+$('ld-alt').value,
@@ -848,8 +933,10 @@ function runLadder(){
          '<span class="mut">moves ' + [cfg.move].concat(moves).join(', ') + '</span>' +
          '<span class="mut">ends on ' + (c.legs[c.legs.length-1].alt ? 'a tower' : 'the ground') + '</span>' +
          '<span class="mut">≥' + c.towers + ' towers</span>' +
-         '<button class="sm" data-i="' + idx + '">routes</button></div>' +
-         '<div class="chainops" id="ch' + idx + '" hidden></div></div>';
+         '<button class="sm" data-i="' + idx + '">routes</button>' +
+         '<button class="sm" data-t="' + idx + '">trace</button></div>' +
+         '<div class="chainops" id="ch' + idx + '" hidden></div>' +
+         '<div class="chainops" id="tr' + idx + '" hidden></div></div>';
   });
   if(!r.chains.length) h = '<div class="mut">No chain of ' + cfg.steps + ' clue values fits. ' +
     'Try a different gap, altitude, or pool.</div>';
@@ -870,6 +957,13 @@ function runLadder(){
         });
         box.innerHTML = hh; box.dataset.built = '1';
       }
+      box.hidden = !box.hidden;
+    };
+  });
+  Array.prototype.forEach.call($('out-ladder').querySelectorAll('button[data-t]'), function(b){
+    b.onclick = function(){
+      var i = +b.dataset.t, box = $('tr' + i);
+      if(!box.dataset.built){ box.innerHTML = traceHTML(cfg, shown[i]); box.dataset.built = '1'; }
       box.hidden = !box.hidden;
     };
   });
