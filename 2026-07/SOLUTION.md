@@ -6,9 +6,9 @@ Jane Street, July 2026 — [‘Pent-Up’ Frustration 3 / Knight Moves 7](https:
 
 ---
 
-## AI disclaimer + what I did
+## AI use disclaimer
 
-I solved this puzzle with AI assistance, specifically I had AI build a sandbox tool to use similar to sudokupad.  I then made logical deductions and tried to solve the entire puzzle by hand.  This proved quite doable (surprising), but I also had AI make me a tooling agent to help me enumerate the math pathways which made figuring out the series of jump ups, jump downs, and jump flats a lot easier once the 3 move rule was dispelled.  I'll try to walk through my logic starting from early assumptions.  I had AI help me write this too — using a recorded transcript of my muttering as I went.  I think AI could have easily one-shotted this puzzle to be honest, but it was very fun to step into the mind of the puzzle setter and try my hand at it.
+I solved this puzzle with AI assistance, specifically I had AI build a sandbox tool to use similar to sudokupad.  I then made logical deductions and tried to solve the entire puzzle by hand.  This proved quite doable (surprising), but I also had AI make me a tooling agent to help me enumerate the math pathways which made figuring out the series of jump ups, jump downs, and jump flats a lot easier once the 3 move rule was dispelled.  I eventually got stuck, but by then had reduced that search space so much the final result took 20 milliseconds to query.  I'll try to walk through my logic starting from early assumptions.  I had AI help me with this writeup too — mostly so I wouldn't have to format all the notation in markdown which is tedious.  I think AI could have easily one-shotted this puzzle to be honest, but it was very fun to solve logically so I'm glad I put up guardrails and gave it a shot myself.
 
 ---
 
@@ -87,12 +87,6 @@ I was quickly able to key in on the `g3 = 1` clue as impossible other than as a 
 
 This is a very useful and restrictive start! Three towers placed — `a1[T]`, `c2[X]`, `e3[F]`.
 
-> **[AI note — verified, optional addition]** I checked this exhaustively and it holds. Two
-> small gaps you might want to spell out, since a reader will hit them:
-> (a) score `1` is unreachable at `#6` or `#9`, which is what makes `g3` *have* to be `#3`;
-> (b) there is a second arithmetic route to a clue value at `#3` — `÷1 ×2 ÷3` lands back on
-> `0` — but `0` is only printed on `a1`, and revisiting is illegal, so it dies immediately.
-> Worth one sentence, because it's the first place the no-revisit rule earns its keep.
 
 ## Checkpoint 2
 
@@ -130,14 +124,9 @@ Both `b7` and `c6` are in region **U**, so whichever it is, U's tower is now spo
 
 ## Checkpoint 6
 
-We must reach `d3 #18 = 88` in 3 jumps, with simple addition each step.  There are a number of candidate paths, but importantly the first move must be `d7` or `g6`.  This will be important later, as we will rule out `g6` elegantly.  At this point, I also started greying out cells that could not contain towers.
+We must reach `d3 #18 = 88` in 3 jumps, with simple addition each step.  There are a number of candidate paths, but importantly the first move must be `d7` or `g6`, since the other two paths starting with `h7` or `e6` quickly die.  This will be important later, as we will rule out `g6` elegantly.  At this point, I also started greying out cells that could not contain towers.
 
 > `f8 #15 = 37` → `+16` → `(d7 or g6) #16 = 53` → `+17` → `#17 = 70` → `+18` → `d3 #18 = 88`
-
-> **[AI note — clarity]** `f8` has four knight-neighbours: `d7`, `h7`, `e6`, `g6`. You say the
-> first move must be `d7` or `g6` but don't say why the other two die. `e6` is already used at
-> `#7`; `h7` fails because from `h7` the only onward knight moves are `f6`, `g5` and `f8`, and
-> none of those is a knight's move from `d3`. One line would close it.
 
 ![Sixth Checkpoint](SS6.png)
 
@@ -169,29 +158,15 @@ Note that 5 additional towers are used, leaving only one tower unused after arri
 
 ![All Checkpoints](SS8.png)
 
-> **[AI note — asset]** `SS8.png` is used here *and* again under Crux 1. The image already
-> shows `d7 #16 = 53`, `c5 #17 = 70` and `h6▲ #54 = 59400`, which are Crux 1 results — so it
-> belongs at Crux 1, and this slot wants a screenshot taken *before* that deduction.
 
 ## Crux 1: f7 and g6 are heavily restricted
 
 Two strong restrictions allow us to make progress from this point.  First is the pathing from `d3` to `f6`.  We need to jump into `f6` from level ground after jumping off a tower that is the third tower in a row.  This pathing that requires 3 towers ends up heavily restrictive.  The towers can either occur in the bottom two regions and the Z pentomino in the top right.  Or, they can occur in the center region, the N pentomino, and the Z pentomino in the top right.  In the Z pentomino, the towers can be on `f7`, `g6`, or `h5` due to the requirement of landing a knight's move from `f6` after the jump.  However, `h5` can be ruled out because there is no valid tower square it can be jumped to from.  So there is a tower on either `f7` or `g6` during the `d3` to `f6` pathing!
 
-Those two cells are already very interesting — they are the only cells reachable from `h8`!  Since `h8` is reached via a normal ground level knight's jump, one of `f7` and `g6` must be used to reach `h8`.  Thus, both `g6` and `f7` are accounted for!!
-
-Concretely:
-
-- `h8 #53 = 1100` is arrived at via `+53`, a **level** move into a ground square. Its predecessor
-  `#52` must be a ground knight-neighbour of `h8`, and there are exactly two: **`f7` and `g6`**.
-- Moves 21 through 23 jump from tower to tower to tower.  There are only a few valid ways in the grid to do this: `c4▲ #21` → `e5▲ #22` → `f7▲/g6▲ #23`, or `g2▲ #21` → `h4▲ #22` → `f7▲/g6▲ #23`.  Note that both end on either `f7` or `g6`.  (There is a third family, `h7▲/g5▲/h3▲`, which is the one exception — it doesn't end on `f7` or `g6`, and I kill it separately below.)
-- So `#23` ∈ {`f7▲`, `g6▲`} — region **Z**'s tower — and `#52` ∈ {`f7`, `g6`} on the ground.
-  They are different squares, so **the path consumes both**.
-
 ### Caveat: I missed a third family here
 
-Being honest about how this actually went — when I solved it I only found the two families
-above. There is a third. Enumerating every legal `d3 #18` → `f6 #25` chain gives **16
-survivors**, in three region-triples rather than two:
+Ok, so I totally missed a third family here. Being honest about how this actually went — when
+I solved it I only found the two families above. There is a third, which is wrong, but very hard to prove so naturally (I tried very hard). Enumerating every legal `d3 #18` → `f6 #25` chain gives **16 survivors**, in three region-triples rather than two:
 
 | towers at `#21 #22 #23` | regions | ends on |
 |---|---|---|
@@ -199,24 +174,21 @@ survivors**, in three region-triples rather than two:
 | `g2▲ → h4▲ → f7▲/g6▲` | W, L, Z | `f7` or `g6` |
 | **`h7▲ → g5▲ → h3▲`** (and its mirror) | **V, Z, L** | `h3` or `h7` |
 
-In that third one Z's tower is `g5` and `#23` lands on `h3` or `h7`, so "both end on `f7` or
-`g6`" isn't true of it, and the `f7`/`g6` argument below doesn't cover it. My solution came out
-of the two families I *did* consider and turned out to be the right one — but that was partly
-luck, because nothing I argue here rules the third one out.
-
-Once I knew it existed I went looking for a clean way to kill it by hand. The closest I got is
-genuinely nice: in that family `h3` is L's tower, so the `×33` climb out of `f3` has to land on
-`f1`, which leaves only N and O for the `#30` tower — and of the three ways a tower in N or O
+I tried to prove it dead, and the closest I got is genuinely nice: in that family `h3` is L's tower, so the `×33` climb out of `f3` has to land on `f1`, which leaves only N and O for the `#30` tower — and of the three ways a tower in N or O
 can drop into a knight's move of `f3`, the best one is blocked because `g5` is that family's own
 Z tower and can't be stood on at ground level. That kills some of it, but not all: `d4▲ → d2`
-survives, and so does `c5▲ → e5` in one of the two chains.
+survives, and so does `c5▲ → e5` in one of the two chains.  I couldn't figure out a way to dispel either without bifurcating.
 
-**The only way I found to finish it off was a tree search, which I handed to AI.** Those last
-routes do die — they just die at moves `#47`–`#51`, where the stretch from `b3 #46` to
-`h8 #53` runs out of unused squares. That is not something I was going to find by hand.
+### Ok back to crux 1
 
-Worth noting the conclusion never actually depended on this: `h6▲ #54` is forced even when
-nothing whatsoever is assumed past `#53`.
+Assuming that `f7` and `g6` must contain a tower... Those two cells are very interesting — they are the only cells reachable from `h8`!  Since `h8` is reached via a normal ground level knight's jump, one of `f7` and `g6` must be used to reach `h8`.  Thus, both `g6` and `f7` are accounted for!!
+Concretely:
+
+- `h8 #53 = 1100` is arrived at via `+53`, a **level** move into a ground square. Its predecessor
+  `#52` must be a ground knight-neighbour of `h8`, and there are exactly two: **`f7` and `g6`**.
+- Moves 21 through 23 jump from tower to tower to tower.  There are only a few valid ways in the grid to do this: `c4▲ #21` → `e5▲ #22` → `f7▲/g6▲ #23`, or `g2▲ #21` → `h4▲ #22` → `f7▲/g6▲ #23`.  Note that both end on either `f7` or `g6`.
+- So `#23` ∈ {`f7▲`, `g6▲`} — region **Z**'s tower — and `#52` ∈ {`f7`, `g6`} on the ground.
+  They are different squares, so **the path consumes both**.
 
 **Key takeaway: no other part of the path can contain `f7` or `g6`.**
 
@@ -230,23 +202,17 @@ Second, there is no longer a valid level knight's move *out* of `h8`.  Since we 
 
 > `h8 #53 = 1100` → `×54` → `h6▲ #54 = 59400`
 
-![After crux 1](SS8.png)
+![After crux 1](SS9.png)
 
 ## Crux 2: which towers does the `d3` → `f6` path take?
 
 To prove that `f7`/`g6` had a tower, we demonstrated that the `d3` → `f6` path must have towers at either `c4` and `e5` or at `g2` and `h4`.  We can determine that the `c4`/`e5` solution is correct by examining the `f3` → `b4` path.  Since that path immediately steps up onto a tower (`×33`), we must place a tower 2 cells away in a straight orthogonal direction from `f3`.  The candidates are `f5`, `f1` and `h3` — and `f5` is in region **F**, whose tower is already `e3`.  So the `#33` tower is `f1[W]` or `h3[L]`.  That removes `g2[W]` and `h4[L]` as valid pathing solutions for `d3` → `f6`, since they would consume both W and L and leave nothing for `#33`.  So the towers are at `c4` and `e5`.
 
-> **[AI note — verified, worth one more line]** `c4`'s straight-2 neighbours are `c6`, `c2`,
-> `a4`, `e4`. `c2` and `e4` are already used, which leaves `c6` and `a4` — so it's worth saying
-> why `c6` dies: reaching `c6` at `#20` would need `#19` to be `e5`, but `e5` has to be the
-> tower at `#22`. That leaves `a4`, and then `#19` must be `b2` (the only knight-neighbour of
-> both `d3` and `a4` that isn't `c5`, which is taken at `#17`).
-
 Moreover, the only valid location to jump up to `c4` from is `a4`, which determines the pathing from `d3` to `e5` completely:
 
 > `d3 #18 = 88` → `+19` → `b2 #19 = 107` → `+20` → `a4 #20 = 127` → `×21` → `c4▲ #21 = 2667` → `+22` → `e5▲ #22 = 2689`
 
-![After crux 2](SS9.png)
+![After crux 2](SS10.png)
 
 ## Endgame: I gave it to AI
 
@@ -258,7 +224,7 @@ seven level moves running out to `h8 #53` — and kept getting to the point wher
 plausible branches and no clean way to choose between them. Eventually I just handed it to AI
 to solve.
 
-I don't feel bad about that, because by then the problem space was *deeply* restricted, and
+I don't feel too bad about that, because by then the problem space was *deeply* restricted, and
 restricting it was the actual work:
 
 - all twelve clue cells placed, at known move numbers, with `K = 7`
@@ -275,6 +241,8 @@ deductions above had done their job.
 ---
 
 ## The solution
+
+![Solution](SS11.png)
 
 ### Towers
 
@@ -342,34 +310,3 @@ For each unvisited square, sum the scores of its orthogonally adjacent squares t
 path; add those nine sums.
 
 ## **Answer: 33609**
-
----
-
-## Tools
-
-Built along the way, all self-contained HTML in this directory:
-
-- **[`knight-sandbox.html`](knight-sandbox.html)** — the board. Place and remove towers, mark
-  squares `?` / `✗ no tower`, walk the knight with legal moves highlighted and the resulting
-  score previewed on hover. Runs can start anywhere, float without a move number until one is
-  known, be built forwards *or backwards* (inverting each operation), and join up when they
-  meet — sharing out their numbering.
-- **[`score-paths.html`](score-paths.html)** — pure score arithmetic, no board. Given a score,
-  a move number and an altitude, enumerate what is reachable, connect two scores in a fixed
-  number of moves, or chain clue values checkpoint to checkpoint. This is what found `K = 7`.
-- **[`print-grids.html`](print-grids.html)** — blank grids, four to a page.
-
-Neither of those tools solves anything: they answer *"is this legal, and what does it score"*,
-never *"what should I play next"*. The deductions above — the forced opening, `K = 7`, the
-`f7`/`g6` squeeze, most of the tower placements — were made by hand with the sandbox doing the
-bookkeeping. The two places I handed over to a genuine search are both flagged where they
-happen: killing the last routes of the third tower family, and the endgame fill.
-
-## Verification
-
-The final path was checked independently of the search that produced it: replaying from score
-0, confirming every displacement really is a signed permutation of `(0,1,2)`, doing the
-arithmetic in exact rationals to catch any non-integer division, confirming all 13 towers sit
-one per region, that all 12 clue cells hit their printed values at the `K = 7` recording
-moments and nowhere else, and that the path ends exactly when the last tower is reached.
-No errors. The solution is unique given the deductions above.
