@@ -5,7 +5,7 @@ One directory per puzzle, named `YYYY-MM`.
 
 | Puzzle | Directory | Tools |
 |---|---|---|
-| [‘Pent-Up’ Frustration 3 / Knight Moves 7](https://www.janestreet.com/puzzles/pent-up-frustration-3-knight-moves-7-index/) (July 2026) | [`2026-07/`](2026-07/) | interactive sandbox, printable grids |
+| [‘Pent-Up’ Frustration 3 / Knight Moves 7](https://www.janestreet.com/puzzles/pent-up-frustration-3-knight-moves-7-index/) (July 2026) | [`2026-07/`](2026-07/) | [**solved — 33609**](2026-07/SOLUTION.md) · sandbox, score search, printable grids |
 
 Everything is a self-contained HTML file — no install, no build step. Open it in a browser.
 

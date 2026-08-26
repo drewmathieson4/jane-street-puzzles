@@ -2,6 +2,7 @@
 
 | File | What it is |
 |---|---|
+| **`SOLUTION.md`** | **the write-up — answer, reasoning, full path** |
 | `knight-sandbox.html` | the interactive sandbox — double-click to open |
 | `score-paths.html`    | score-arithmetic search: what can this score reach, and how |
 | `print-grids.html`    | printable blank grids, 4 to a page |
