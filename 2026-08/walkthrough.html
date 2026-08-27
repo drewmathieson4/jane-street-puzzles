@@ -1,0 +1,903 @@
+<title>Andy's Afternoon Amble</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@500;600;700&family=Newsreader:opsz,wght@6..72,300;6..72,400;6..72,500&display=swap">
+
+<style>
+:root{
+  --paper:#eceeeb; --surface:#f8faf8; --surface-2:#e2e7e3;
+  --ink:#161a18; --ink-2:#39433f; --muted:#65726e; --rule:#ccd5d0;
+  --c0:#bf4038; --c1:#25756d; --c2:#8f6612; --c3:#4c5a99;
+  --tile-w:#fcfdfc; --tile-b:#232a2c; --tile-stroke:#aeb9b3;
+  --accent:#bf4038; --accent-soft:#bf40381f;
+  --shadow:0 1px 2px #0f1a1610, 0 10px 26px #0f1a160d;
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --paper:#0d1110; --surface:#161b1a; --surface-2:#1f2624;
+    --ink:#e5eae7; --ink-2:#bcc6c2; --muted:#8a9895; --rule:#2b3533;
+    --c0:#ea6c61; --c1:#4cb2a6; --c2:#cf9c3a; --c3:#8b96d6;
+    --tile-w:#cbd5d1; --tile-b:#070a0b; --tile-stroke:#3c4643;
+    --accent:#ea6c61; --accent-soft:#ea6c6126;
+    --shadow:0 1px 2px #00000055, 0 10px 26px #00000045;
+  }
+}
+:root[data-theme="dark"]{
+  --paper:#0d1110; --surface:#161b1a; --surface-2:#1f2624;
+  --ink:#e5eae7; --ink-2:#bcc6c2; --muted:#8a9895; --rule:#2b3533;
+  --c0:#ea6c61; --c1:#4cb2a6; --c2:#cf9c3a; --c3:#8b96d6;
+  --tile-w:#cbd5d1; --tile-b:#070a0b; --tile-stroke:#3c4643;
+  --accent:#ea6c61; --accent-soft:#ea6c6126;
+  --shadow:0 1px 2px #00000055, 0 10px 26px #00000045;
+}
+
+*{box-sizing:border-box}
+body{
+  margin:0; background:var(--paper); color:var(--ink);
+  font-family:"Newsreader",Georgia,"Times New Roman",serif;
+  font-size:19px; line-height:1.68; font-weight:400;
+  -webkit-font-smoothing:antialiased;
+}
+.page{
+  display:grid;
+  grid-template-columns:
+    [full-start] minmax(1.25rem,1fr)
+    [wide-start] minmax(0,7rem)
+    [content-start] min(43rem, 100% - 2.5rem)
+    [content-end] minmax(0,7rem)
+    [wide-end] minmax(1.25rem,1fr) [full-end];
+  padding-block:0 6rem;
+}
+.page > *{grid-column:content}
+.page > .wide{grid-column:wide}
+
+h1,h2,h3{font-family:"IBM Plex Sans",system-ui,sans-serif;text-wrap:balance;margin:0}
+h1{font-size:clamp(2.4rem,7vw,3.9rem);font-weight:700;line-height:1.02;letter-spacing:-.028em}
+h2{font-size:clamp(1.45rem,3.4vw,1.85rem);font-weight:600;line-height:1.2;letter-spacing:-.016em}
+h3{font-size:1.02rem;font-weight:600}
+p{margin:0 0 1.05em}
+a{color:var(--accent);text-underline-offset:.18em}
+strong{font-weight:500;color:var(--ink);background:linear-gradient(transparent 66%, var(--accent-soft) 66%)}
+code,.mono{font-family:"IBM Plex Mono",ui-monospace,SFMono-Regular,monospace;font-size:.86em}
+:focus-visible{outline:2px solid var(--accent);outline-offset:3px;border-radius:2px}
+
+.hero{padding-block:5rem 1.5rem}
+.eyebrow{
+  font-family:"IBM Plex Mono",monospace;font-size:.7rem;font-weight:500;
+  text-transform:uppercase;letter-spacing:.17em;color:var(--muted);
+  display:flex;gap:.7rem;align-items:center;margin-bottom:1.3rem;
+}
+.eyebrow::after{content:"";flex:1;height:1px;background:var(--rule)}
+.standfirst{font-size:1.24rem;line-height:1.55;color:var(--ink-2);font-weight:300;margin:1.5rem 0 0;max-width:34rem}
+
+.verdict{
+  display:flex;flex-wrap:wrap;align-items:baseline;gap:.55rem 1.1rem;
+  margin:2.5rem 0 0;padding:1.15rem 1.4rem;
+  background:var(--surface);border:1px solid var(--rule);border-radius:3px;
+  border-left:3px solid var(--accent);
+}
+.verdict .lbl{font-family:"IBM Plex Mono",monospace;font-size:.68rem;text-transform:uppercase;letter-spacing:.15em;color:var(--muted)}
+.verdict .val{font-family:"IBM Plex Mono",monospace;font-size:1.5rem;font-weight:600;color:var(--accent)}
+.verdict .note{font-size:.95rem;color:var(--muted);flex-basis:100%;line-height:1.45}
+
+.step{margin-top:4.5rem}
+.step-n{
+  font-family:"IBM Plex Mono",monospace;font-size:.7rem;font-weight:600;
+  letter-spacing:.16em;text-transform:uppercase;color:var(--accent);
+  display:block;margin-bottom:.5rem;
+}
+.step > h2{margin-bottom:1.1rem}
+.lede{font-size:1.09rem;color:var(--ink-2)}
+
+.aside{margin:1.6rem 0;padding:.9rem 1.15rem;background:var(--surface-2);border-radius:3px;font-size:.95rem;line-height:1.55;color:var(--ink-2)}
+.aside p:last-child{margin-bottom:0}
+.aside .tag{font-family:"IBM Plex Mono",monospace;font-size:.66rem;text-transform:uppercase;letter-spacing:.15em;color:var(--muted);display:block;margin-bottom:.35rem}
+
+figure{margin:2.2rem 0;padding:0}
+figure.wide{margin-block:2.6rem}
+.plate{background:var(--surface);border:1px solid var(--rule);border-radius:4px;padding:1.4rem;box-shadow:var(--shadow);overflow-x:auto}
+.plate svg{display:block;max-width:100%;height:auto;margin-inline:auto}
+#sim-floor{max-height:min(62vh,440px)}
+figcaption{font-family:"IBM Plex Mono",monospace;font-size:.73rem;line-height:1.55;color:var(--muted);margin-top:.75rem}
+.duo{display:grid;grid-template-columns:1fr 1fr;gap:1.2rem}
+@media (max-width:640px){.duo{grid-template-columns:1fr}}
+.panel-label{font-family:"IBM Plex Mono",monospace;font-size:.67rem;text-transform:uppercase;letter-spacing:.14em;color:var(--muted);text-align:center;margin-bottom:.6rem}
+
+.controls{display:flex;flex-wrap:wrap;gap:.45rem;margin-top:1rem;align-items:center}
+.hint{font-family:"IBM Plex Mono",monospace;font-size:.68rem;color:var(--muted)}
+button{
+  font-family:"IBM Plex Mono",monospace;font-size:.72rem;font-weight:500;letter-spacing:.05em;
+  padding:.5rem .85rem;border-radius:3px;cursor:pointer;
+  background:var(--surface-2);color:var(--ink-2);border:1px solid var(--rule);
+  transition:background .12s,color .12s,border-color .12s;
+}
+button:hover{background:var(--accent);color:var(--paper);border-color:var(--accent)}
+button[aria-pressed="true"]{background:var(--accent);color:var(--paper);border-color:var(--accent)}
+
+.math{
+  font-family:"IBM Plex Mono",monospace;font-size:.83rem;line-height:1.95;
+  background:var(--surface);border:1px solid var(--rule);border-left:3px solid var(--c1);
+  border-radius:3px;padding:1.05rem 1.25rem;margin:1.5rem 0;overflow-x:auto;
+  white-space:pre;color:var(--ink-2);
+}
+.math b{color:var(--accent);font-weight:600}
+
+.keys{list-style:none;padding:0;margin:1.4rem 0;display:grid;gap:.75rem}
+.keys li{display:grid;grid-template-columns:auto 1fr;gap:.85rem;align-items:baseline;font-size:1rem;line-height:1.55;color:var(--ink-2)}
+.keys .k{font-family:"IBM Plex Mono",monospace;font-size:.68rem;font-weight:600;letter-spacing:.1em;color:var(--paper);background:var(--ink-2);padding:.2rem .45rem;border-radius:2px;white-space:nowrap}
+
+.sim{display:grid;grid-template-columns:1fr 15rem;gap:1.4rem;align-items:start}
+@media (max-width:760px){.sim{grid-template-columns:1fr}}
+.readout{display:grid;gap:1.1rem;font-family:"IBM Plex Mono",monospace}
+.ro-lbl{font-size:.65rem;text-transform:uppercase;letter-spacing:.15em;color:var(--muted);display:block;margin-bottom:.45rem}
+.chips{display:flex;gap:.35rem}
+.chip{flex:1;aspect-ratio:1/1;border-radius:3px;display:grid;place-items:center;font-size:.62rem;font-weight:600;border:1px solid var(--rule);background:var(--surface-2);color:var(--muted);transition:background .15s,color .15s,border-color .15s}
+.chip[data-on="1"]{color:var(--paper);border-color:transparent}
+.memory{font-size:.78rem;letter-spacing:.22em;color:var(--ink-2);min-height:2.6em;word-break:break-all;line-height:1.45}
+.status{font-size:.78rem;line-height:1.5;padding:.65rem .8rem;border-radius:3px;background:var(--surface-2);color:var(--ink-2);border-left:3px solid var(--rule)}
+.status[data-v="bust"]{border-left-color:var(--accent);color:var(--accent)}
+.status[data-v="safe"]{border-left-color:var(--c1);color:var(--c1)}
+.tally{font-size:.75rem;color:var(--muted);line-height:1.6}
+.tally b{color:var(--ink);font-weight:600}
+
+hr.sep{border:0;border-top:1px solid var(--rule);margin:4.5rem 0 0}
+.foot{margin-top:2.5rem;font-size:.93rem;color:var(--muted);line-height:1.6}
+.foot h3{color:var(--ink-2);margin-bottom:.6rem}
+.swatch{display:inline-block;width:.62em;height:.62em;border-radius:1px;vertical-align:baseline}
+@media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
+</style>
+
+<svg width="0" height="0" style="position:absolute" aria-hidden="true" focusable="false"><defs>
+  <marker id="ar" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="5" markerHeight="5" orient="auto-start-reverse">
+    <path d="M0,1 L10,5 L0,9 z" fill="var(--accent)"/></marker>
+  <marker id="ar2" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="5" markerHeight="5" orient="auto-start-reverse">
+    <path d="M0,1 L10,5 L0,9 z" fill="var(--c1)"/></marker>
+  <marker id="arl" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="5" markerHeight="5" orient="auto-start-reverse">
+    <path d="M0,1 L10,5 L0,9 z" fill="#eef2f0"/></marker>
+  <marker id="ar3" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="5" markerHeight="5" orient="auto-start-reverse">
+    <path d="M0,1 L10,5 L0,9 z" fill="var(--muted)"/></marker>
+  <g id="choices" font-family="IBM Plex Mono, monospace" font-size="14" text-anchor="middle">
+    <line x1="86" y1="-13" x2="33" y2="-13" stroke="var(--c1)" stroke-width="4.5" marker-end="url(#ar2)"/>
+    <text x="100" y="-30" fill="var(--c1)">in</text>
+    <line x1="33" y1="13" x2="86" y2="13" stroke="var(--accent)" stroke-width="4.5" marker-end="url(#ar)"/>
+    <text x="100" y="34" fill="var(--accent)">back</text>
+    <line x1="-17" y1="-30" x2="-43" y2="-75" stroke="var(--accent)" stroke-width="4.5" marker-end="url(#ar)"/>
+    <text x="-50" y="-82" fill="var(--accent)">right 60&#176;</text>
+    <line x1="-17" y1="30" x2="-43" y2="75" stroke="var(--accent)" stroke-width="4.5" marker-end="url(#ar)"/>
+    <text x="-50" y="91" fill="var(--accent)">left 60&#176;</text>
+  </g>
+  <g id="whites3" fill="var(--tile-w)" stroke="var(--tile-stroke)" stroke-width="1.5">
+    <polygon points="148.2,-27.9 100.0,-55.7 51.7,-27.9 51.8,27.9 100.0,55.7 148.2,27.9"/>
+    <polygon points="-1.7,-114.5 -50.0,-142.3 -98.2,-114.5 -98.2,-58.7 -50.0,-30.9 -1.8,-58.7"/>
+    <polygon points="-1.8,58.7 -50.0,30.9 -98.3,58.7 -98.3,114.5 -50.0,142.3 -1.8,114.5"/>
+  </g>
+  <polygon id="chex" points="48.3,-27.9 0.0,-55.7 -48.3,-27.9 -48.2,27.9 -0.0,55.7 48.2,27.9"/>
+</defs></svg>
+
+<div class="page">
+
+<header class="hero">
+  <div class="eyebrow">Jane Street &middot; August 2026</div>
+  <h1>Andy's Afternoon Amble</h1>
+  <p class="standfirst">An ant who can only ever see one tile at a time is moved from a
+  four&#8209;sided world to an infinite one. He notices &mdash; sometimes. Here is where the
+  number comes from, slowly.</p>
+  <div class="verdict">
+    <span class="lbl">Answer</span>
+    <span class="val">p = 11/20</span>
+    <span class="note">The whole puzzle collapses into a random walk on a ring of six seats.
+    Everything below is the road to that ring.</span>
+  </div>
+</header>
+
+<section class="step">
+  <span class="step-n">The setup</span>
+  <h2>What Andy actually experiences</h2>
+  <p class="lede">He is tiny and short&#8209;sighted. He cannot see curvature, cannot see the
+  shape of a black cell, cannot see across the world. Three things are true of him, and they
+  are the entire puzzle:</p>
+  <ul class="keys">
+    <li><span class="k">WALKS</span><span>He only steps on <strong>white</strong> hexagons.
+      Each step goes to one of the three neighbouring white hexagons, 1/3 each.</span></li>
+    <li><span class="k">MARKS</span><span>He recognises exactly one tile:
+      <strong>home</strong>, because he left pheromones on it. Every other tile is
+      anonymous.</span></li>
+    <li><span class="k">REMEMBERS</span><span>He remembers <strong>the turns he has
+      taken</strong>. Not where he is &mdash; just the sequence of turns.</span></li>
+  </ul>
+  <p>He ambles until he steps back onto home. The question is whether, by then, he has
+  worked out that the floor is not his old world.</p>
+</section>
+
+<section class="step">
+  <span class="step-n">Step 01</span>
+  <h2>Throw the black cells away</h2>
+  <p>Andy never sets foot on black. So the only map that matters is: <em>the white hexagons,
+  and which whites touch which.</em> Do that to both worlds.</p>
+
+  <figure class="wide">
+    <div class="plate">
+      <div class="duo">
+        <div>
+          <div class="panel-label">His old world &mdash; the ball</div>
+          <svg id="ball-hero" viewBox="-130 -130 260 260" role="img"
+               aria-label="A truncated tetrahedron: four white hexagons and four black triangles."></svg>
+        </div>
+        <div>
+          <div class="panel-label">The kitchen floor</div>
+          <svg id="floor-bw" viewBox="0 0 100 100" role="img"
+               aria-label="An infinite hexagonal floor: white hexagons alternating around black ones."></svg>
+        </div>
+      </div>
+      <div class="controls"><button id="ball-spin" aria-pressed="true">Spin</button>
+        <span class="hint">or drag the ball to turn it</span></div>
+    </div>
+    <figcaption>Left: four white hexagons, each touching the other three &mdash; that is the
+    <em>whole</em> map of his old world. Right: infinitely many white hexagons, each touching
+    three others.</figcaption>
+  </figure>
+
+  <p>Count the ways out. On the ball: four whites, each touching the other
+  <strong>three</strong>. On the floor: each white touches <strong>three</strong> whites,
+  with three black ones tucked between them. Both worlds offer three exits at every tile.
+  That is why this is hard.</p>
+</section>
+
+<section class="step">
+  <span class="step-n">Step 02</span>
+  <h2>Standing on a tile, the two worlds are identical</h2>
+  <p>Andy arrives on a hexagon across some edge. That hexagon has six edges, and they
+  <em>alternate</em>: white neighbour, black thing, white neighbour, black thing, white
+  neighbour, black thing. True on the ball. True on the floor. So his three options are
+  always the same three:</p>
+
+  <figure class="wide">
+    <div class="plate">
+      <div class="duo">
+        <div>
+          <div class="panel-label">On the ball</div>
+          <svg viewBox="-185 -185 370 370" role="img"
+               aria-label="A hexagon on the ball with three white neighbours and three black triangles between them; the ant may go back, right, or left.">
+            <g fill="var(--tile-b)">
+              <polygon points="50.0,-28.9 0.0,-57.7 50.0,-86.6"/>
+              <polygon points="-50.0,-28.9 -50.0,28.9 -100.0,-0.0"/>
+              <polygon points="-0.0,57.7 50.0,28.9 50.0,86.6"/>
+            </g>
+            <use href="#whites3"/>
+            <use href="#chex" fill="var(--tile-w)" stroke="var(--tile-stroke)" stroke-width="1.5"/>
+            <use href="#choices"/>
+          </svg>
+        </div>
+        <div>
+          <div class="panel-label">On the floor</div>
+          <svg viewBox="-185 -185 370 370" role="img"
+               aria-label="A hexagon on the floor with three white neighbours and three black hexagons between them; the ant may go back, right, or left.">
+            <g fill="var(--tile-b)">
+              <polygon points="98.3,-114.5 50.0,-142.3 1.8,-114.5 1.8,-58.7 50.0,-30.9 98.2,-58.7"/>
+              <polygon points="-51.7,-27.9 -100.0,-55.7 -148.2,-27.9 -148.2,27.9 -100.0,55.7 -51.8,27.9"/>
+              <polygon points="98.3,58.7 50.0,30.9 1.8,58.7 1.8,114.5 50.0,142.3 98.2,114.5"/>
+            </g>
+            <use href="#whites3"/>
+            <use href="#chex" fill="var(--tile-w)" stroke="var(--tile-stroke)" stroke-width="1.5"/>
+            <use href="#choices"/>
+          </svg>
+        </div>
+      </div>
+    </div>
+    <figcaption>The white parts of these two pictures are the same picture. The only
+    difference is the shape of the black cells &mdash; and black is the one thing Andy
+    refuses to look at.</figcaption>
+  </figure>
+
+  <p>So a remembered sequence of turns like <code>L B R R L</code> traces
+  <strong>one definite path on each of the two worlds</strong>. Andy's feet are on the floor.
+  But his memory is running the same instructions on the ball, in his head.</p>
+  <div class="aside">
+    <span class="tag">Why "back" counts as one of the three</span>
+    <p>Turning round is a legal move &mdash; it is just another white edge. The puzzle's own
+    example uses it: he steps out, then has a 1/3 chance of stepping straight back. That is
+    why 1/3 of ambles are two steps long.</p>
+  </div>
+</section>
+
+<section class="step">
+  <span class="step-n">Step 03</span>
+  <h2>There is exactly one way he can get caught</h2>
+  <p>He has one fact he can check, and only one. His turn memory says <em>&ldquo;by now I
+  should be standing on home.&rdquo;</em> He looks down.</p>
+  <ul class="keys">
+    <li><span class="k">PHEROMONE</span><span>He <em>is</em> on home. Memory and reality
+      agree, the amble ends, he learns nothing. Business as usual.</span></li>
+    <li><span class="k">BARE TILE</span><span>No pheromone. His memory promised home and home
+      isn't here. <strong>Busted.</strong></span></li>
+  </ul>
+  <p>So <em>p</em> is the probability that the first time his mental ball&#8209;walk gets
+  home, his real position on the floor is somewhere else. To compute that we need one thing:
+  <strong>given where he really is on the floor, which of the ball's four hexagons does his
+  memory think he is on?</strong></p>
+</section>
+
+<section class="step">
+  <span class="step-n">Step 04</span>
+  <h2>The fold &mdash; where the black triangles come from</h2>
+  <p class="lede">This is the step everything turns on, so take it very slowly.</p>
+  <p>Pick one black hexagon on the kitchen floor. Spin the entire floor
+  <strong>180&#176; about its centre</strong>. Every tile lands on a tile of the same colour
+  &mdash; the pattern maps exactly onto itself. It is a symmetry of the floor.</p>
+  <p>Now do something violent: <em>glue</em> every tile to the tile it landed on. Opposite
+  pairs become one tile. Watch the black hexagon and its six white neighbours.</p>
+
+  <figure class="wide">
+    <div class="plate">
+      <svg viewBox="-170 -125 595 280" role="img"
+           aria-label="A black hexagon with six white neighbours; a half-turn glues opposite tiles in pairs, leaving a black triangle with three white neighbours.">
+        <g transform="translate(-45,0) scale(0.74)">
+          <use href="#chex" fill="var(--tile-b)"/>
+          <g fill="var(--tile-w)" stroke="var(--tile-stroke)" stroke-width="1.6">
+            <polygon points="148.2,-27.9 100.0,-55.7 51.7,-27.9 51.8,27.9 100.0,55.7 148.2,27.9"/>
+            <polygon points="98.3,-114.5 50.0,-142.3 1.8,-114.5 1.8,-58.7 50.0,-30.9 98.2,-58.7"/>
+            <polygon points="-1.7,-114.5 -50.0,-142.3 -98.2,-114.5 -98.2,-58.7 -50.0,-30.9 -1.8,-58.7"/>
+            <polygon points="-51.7,-27.9 -100.0,-55.7 -148.2,-27.9 -148.2,27.9 -100.0,55.7 -51.8,27.9"/>
+            <polygon points="-1.8,58.7 -50.0,30.9 -98.3,58.7 -98.3,114.5 -50.0,142.3 -1.8,114.5"/>
+            <polygon points="98.3,58.7 50.0,30.9 1.8,58.7 1.8,114.5 50.0,142.3 98.2,114.5"/>
+          </g>
+          <g font-family="IBM Plex Mono, monospace" font-size="34" font-weight="600"
+             text-anchor="middle" dominant-baseline="central">
+            <text x="100" y="0" fill="var(--c1)">1</text>
+            <text x="50" y="-86.6" fill="var(--c2)">2</text>
+            <text x="-50" y="-86.6" fill="var(--c3)">3</text>
+            <text x="-100" y="0" fill="var(--c1)">1</text>
+            <text x="-50" y="86.6" fill="var(--c2)">2</text>
+            <text x="50" y="86.6" fill="var(--c3)">3</text>
+          </g>
+          <path d="M -24 24 A 34 34 0 1 1 24 24" fill="none" stroke="#eef2f0"
+                stroke-width="4.5" marker-end="url(#arl)"/>
+          <circle cx="0" cy="0" r="4.5" fill="#eef2f0"/>
+        </g>
+        <line x1="105" y1="0" x2="175" y2="0" stroke="var(--muted)" stroke-width="2.5" marker-end="url(#ar3)"/>
+        <text x="140" y="-14" font-family="IBM Plex Mono, monospace" font-size="12"
+              fill="var(--muted)" text-anchor="middle">glue</text>
+        <g transform="translate(300,0) scale(0.98)">
+          <polygon points="16.7,-28.9 -33.3,-0.0 16.7,28.9" fill="var(--tile-b)"/>
+          <g fill="var(--tile-w)" stroke="var(--tile-stroke)" stroke-width="1.1">
+            <polygon points="114.9,-27.9 66.7,-55.7 18.4,-27.9 18.4,27.9 66.7,55.7 114.9,27.9"/>
+            <polygon points="14.9,-85.6 -33.3,-113.4 -81.6,-85.6 -81.6,-29.9 -33.3,-2.0 14.9,-29.9"/>
+            <polygon points="14.9,29.9 -33.3,2.0 -81.6,29.9 -81.6,85.6 -33.3,113.4 14.9,85.6"/>
+          </g>
+          <g font-family="IBM Plex Mono, monospace" font-size="23" font-weight="600"
+             text-anchor="middle" dominant-baseline="central">
+            <text x="66.7" y="0" fill="var(--c1)">1</text>
+            <text x="-33.3" y="-57.7" fill="var(--c2)">2</text>
+            <text x="-33.3" y="57.7" fill="var(--c3)">3</text>
+          </g>
+        </g>
+        <text x="-45" y="145" font-family="IBM Plex Mono, monospace" font-size="12"
+              fill="var(--muted)" text-anchor="middle">6 white neighbours</text>
+        <text x="300" y="145" font-family="IBM Plex Mono, monospace" font-size="12"
+              fill="var(--muted)" text-anchor="middle">3 white neighbours</text>
+      </svg>
+    </div>
+    <figcaption>The half-turn pairs opposite tiles: 1 with 1, 2 with 2, 3 with 3. Six white
+    neighbours become three. The wedges left open on the right are the curvature &mdash; the
+    reason this world closes up into a ball instead of tiling a floor.</figcaption>
+  </figure>
+
+  <p>And look what happened to the black hexagon itself. Its six sides were glued in opposite
+  pairs, leaving three. <strong>A hexagon folded onto itself by a half-turn is a
+  triangle.</strong> Three sides, three white neighbours around it &mdash; which is exactly
+  what a black cell looks like in Andy's old world.</p>
+</section>
+
+<section class="step">
+  <span class="step-n">Step 05</span>
+  <h2>Fold at every black hexagon and the floor <em>becomes</em> the ball</h2>
+  <p>Don't stop at one. Do the half-turn at <em>every</em> black hexagon at once, and see
+  which white tiles end up glued together. They sort themselves into exactly
+  <strong>four families</strong>.</p>
+
+  <figure class="wide">
+    <div class="plate">
+      <div class="duo">
+        <div>
+          <div class="panel-label">The floor, in four families</div>
+          <svg id="floor-orbit" viewBox="0 0 100 100" role="img"
+               aria-label="The hexagonal floor with its white tiles coloured in four repeating families."></svg>
+        </div>
+        <div>
+          <div class="panel-label">The ball, four hexagons</div>
+          <svg id="ball-tint" viewBox="-130 -130 260 260" role="img"
+               aria-label="The truncated tetrahedron with its four hexagons coloured to match the four floor families."></svg>
+        </div>
+      </div>
+    </div>
+    <figcaption>Each family's three neighbours belong to the three <em>other</em> families,
+    never its own. Four tiles, each touching the other three. That is the ball, exactly.</figcaption>
+  </figure>
+
+  <p>A half-turn is a rigid motion, so it carries turns to turns: a left is still a left after
+  folding. The fold is compatible with everything Andy remembers. Which gives the one sentence
+  the whole solution rests on:</p>
+  <div class="aside" style="border-left:3px solid var(--accent);background:var(--surface)">
+    <span class="tag">The translation</span>
+    <p style="font-size:1.05rem;color:var(--ink)">Andy's mental position on the ball is just
+    <strong>the colour of the floor tile he is really standing on.</strong></p>
+    <p style="margin-top:.6rem">So &ldquo;his memory says he is home&rdquo; means exactly
+    &ldquo;he is standing on a <span class="swatch" style="background:var(--c0)"></span> red
+    tile.&rdquo; Home is red. But so are infinitely many others &mdash; and those are the
+    traps.</p>
+  </div>
+  <p>The amble now reads: <em>Andy walks off home and keeps going until he first lands on a
+  red tile. If it is home, he never suspected a thing. If it is any other red tile, he is
+  caught.</em></p>
+</section>
+
+<section class="step">
+  <span class="step-n">Step 06</span>
+  <h2>Rub out the red tiles and the problem falls apart</h2>
+  <p>Red tiles end the question &mdash; the moment he hits one, the verdict is in. So the only
+  thing left to understand is where he can roam <em>before</em> that. Rub the red tiles out
+  and look at what remains.</p>
+
+  <figure class="wide">
+    <div class="plate">
+      <svg id="floor-rings" viewBox="0 0 100 100" role="img"
+           aria-label="The floor with the red family removed; the remaining white tiles form separate closed rings of six around single black hexagons."></svg>
+      <div class="controls">
+        <button id="btn-all" aria-pressed="true">All four families</button>
+        <button id="btn-cut" aria-pressed="false">Rub out the red</button>
+      </div>
+    </div>
+    <figcaption>With the red family gone, the remaining whites are no longer one connected
+    sheet. They break into <em>separate closed rings of six</em>, each looped around a single
+    black hexagon.</figcaption>
+  </figure>
+
+  <p>That is not a quirk of this patch &mdash; it holds everywhere. Every non&#8209;red white
+  tile has exactly <strong>two</strong> non&#8209;red neighbours and exactly
+  <strong>one</strong> red neighbour. Two ways to walk, one way out: the definition of being
+  stuck on a ring with a trapdoor under every seat.</p>
+  <p>So Andy steps off home, lands on some ring, and <em>cannot leave that ring</em> except by
+  dropping onto a red tile &mdash; which ends the question. He roams at most three tiles from
+  home, and there are only 31 tiles he can ever set foot on.</p>
+
+  <figure class="wide">
+    <div class="plate">
+      <svg viewBox="-275 -285 550 590" role="img"
+           aria-label="A ring of six white tiles around a black hexagon; each seat has one exit to a red tile, and only seat zero's exit leads back to home.">
+        <g fill="var(--c0)" stroke="var(--tile-stroke)" stroke-width="1.4">
+          <polygon points="148.3,-201.1 100.0,-228.9 51.8,-201.1 51.8,-145.3 100.0,-117.5 148.2,-145.3"/>
+          <polygon points="248.2,-27.9 200.0,-55.7 151.8,-27.9 151.8,27.9 200.0,55.7 248.2,27.9"/>
+          <polygon points="148.3,145.3 100.0,117.5 51.8,145.3 51.8,201.1 100.0,228.9 148.2,201.1"/>
+          <polygon points="-51.7,145.3 -100.0,117.5 -148.2,145.3 -148.2,201.1 -100.0,228.9 -51.7,201.1"/>
+          <polygon points="-151.8,-27.9 -200.0,-55.7 -248.2,-27.9 -248.2,27.9 -200.0,55.7 -151.8,27.9"/>
+          <polygon points="-51.7,-201.1 -100.0,-228.9 -148.2,-201.1 -148.2,-145.3 -100.0,-117.5 -51.7,-145.3"/>
+        </g>
+        <use href="#chex" fill="var(--tile-b)"/>
+        <g fill="var(--tile-w)" stroke="var(--tile-stroke)" stroke-width="1.4">
+          <polygon points="98.3,-114.5 50.0,-142.3 1.8,-114.5 1.8,-58.7 50.0,-30.9 98.2,-58.7"/>
+          <polygon points="148.2,-27.9 100.0,-55.7 51.7,-27.9 51.8,27.9 100.0,55.7 148.2,27.9"/>
+          <polygon points="98.3,58.7 50.0,30.9 1.8,58.7 1.8,114.5 50.0,142.3 98.2,114.5"/>
+          <polygon points="-1.7,58.7 -50.0,30.9 -98.2,58.7 -98.2,114.5 -50.0,142.3 -1.8,114.5"/>
+          <polygon points="-51.7,-27.9 -100.0,-55.7 -148.2,-27.9 -148.2,27.9 -100.0,55.7 -51.8,27.9"/>
+          <polygon points="-1.7,-114.5 -50.0,-142.3 -98.2,-114.5 -98.2,-58.7 -50.0,-30.9 -1.8,-58.7"/>
+        </g>
+        <g stroke-width="5" fill="none">
+          <line x1="57.5" y1="-99.6" x2="74.0" y2="-128.2" stroke="var(--accent)" marker-end="url(#ar)"/>
+          <line x1="115.0" y1="0" x2="148.0" y2="0" stroke="var(--muted)" marker-end="url(#ar3)"/>
+          <line x1="57.5" y1="99.6" x2="74.0" y2="128.2" stroke="var(--muted)" marker-end="url(#ar3)"/>
+          <line x1="-57.5" y1="99.6" x2="-74.0" y2="128.2" stroke="var(--muted)" marker-end="url(#ar3)"/>
+          <line x1="-115.0" y1="0" x2="-148.0" y2="0" stroke="var(--muted)" marker-end="url(#ar3)"/>
+          <line x1="-57.5" y1="-99.6" x2="-74.0" y2="-128.2" stroke="var(--muted)" marker-end="url(#ar3)"/>
+        </g>
+        <g>
+          <polygon points="98.3,-114.5 50.0,-142.3 1.8,-114.5 1.8,-58.7 50.0,-30.9 98.2,-58.7"
+                   fill="none" stroke="var(--accent)" stroke-width="5"/>
+        </g>
+        <g font-family="IBM Plex Mono, monospace" font-size="30" font-weight="600"
+           text-anchor="middle" dominant-baseline="central" fill="var(--ink-2)">
+          <text x="50.0" y="-86.6">0</text>
+          <text x="100.0" y="0">1</text>
+          <text x="50.0" y="86.6">2</text>
+          <text x="-50.0" y="86.6">3</text>
+          <text x="-100.0" y="0">4</text>
+          <text x="-50.0" y="-86.6">5</text>
+        </g>
+        <text x="100.0" y="-173.2" font-family="IBM Plex Mono, monospace" font-size="21"
+              font-weight="600" text-anchor="middle" dominant-baseline="central"
+              fill="var(--paper)">HOME</text>
+        <text x="0" y="272" font-family="IBM Plex Mono, monospace" font-size="19"
+              text-anchor="middle" fill="var(--muted)">six seats &middot; six trapdoors &middot; one leads home</text>
+      </svg>
+    </div>
+    <figcaption>Andy enters at seat 0, the tile next to home. Every seat has a trapdoor down
+    to a red tile &mdash; but the six trapdoors lead to six <em>different</em> red tiles, and
+    only seat 0's leads back to home.</figcaption>
+  </figure>
+</section>
+
+<section class="step">
+  <span class="step-n">Step 07</span>
+  <h2>One small equation</h2>
+  <p>No geometry left. Andy sits on a ring of six seats. Each step, with probability 1/3 each,
+  he moves one seat one way, one seat the other way, or drops through the trapdoor. He starts
+  at seat 0. <strong>What is the chance he drops through seat 0's trapdoor?</strong></p>
+  <p>Write <code>a<em>k</em></code> for that chance starting from seat <em>k</em>. The ring is
+  symmetric, so <code>a1&nbsp;=&nbsp;a5</code> and <code>a2&nbsp;=&nbsp;a4</code>, leaving four
+  unknowns:</p>
+
+  <div class="math">3a0 = 1 + 2a1      from seat 0: drop through, and that is the win
+3a1 = a0 + a2      from seat 1: dropping through here loses
+3a2 = a1 + a3
+3a3 = 2a2          seat 3 is directly opposite seat 0</div>
+
+  <p>Substituting upward: <code>a3&nbsp;=&nbsp;(2/3)a2</code>, then
+  <code>a1&nbsp;=&nbsp;(7/3)a2</code>, then <code>a0&nbsp;=&nbsp;6a2</code>, and the first line
+  collapses to <code>40a2&nbsp;=&nbsp;3</code>.</p>
+
+  <div class="math">a0 = <b>9/20</b>    a1 = 7/40    a2 = 3/40    a3 = 1/20</div>
+
+  <p>He starts at seat 0, so he gets home with probability <strong>9/20</strong>.</p>
+</section>
+
+<section class="step">
+  <span class="step-n">Step 08</span>
+  <h2>The answer</h2>
+  <div class="math" style="font-size:1rem;border-left-color:var(--accent)">home, suspects nothing        9/20
+some other red tile, busted  <b>11/20</b></div>
+  <p>Just over half of Andy's afternoons end with him working out that the world has changed.
+  Not because he saw anything &mdash; he never sees more than one tile &mdash; but because his
+  own bookkeeping stopped adding up.</p>
+</section>
+
+<section class="step">
+  <span class="step-n">Watch it happen</span>
+  <h2>One afternoon at a time</h2>
+  <p>Home is the ringed tile. Andy's trail is drawn as he goes, and the four chips show which
+  of the ball's hexagons his memory thinks he is on. The walk stops the moment that memory
+  says <em>home</em> &mdash; because that is the moment he looks down.</p>
+</section>
+
+<figure class="wide">
+    <div class="plate">
+      <div class="sim">
+        <div>
+          <svg id="sim-floor" viewBox="0 0 100 100" role="img"
+               aria-label="A patch of the kitchen floor showing Andy's walk out from home."></svg>
+        </div>
+        <div class="readout">
+          <div>
+            <span class="ro-lbl">He thinks he is on</span>
+            <div class="chips" id="sim-chips"></div>
+          </div>
+          <div>
+            <span class="ro-lbl">Turns remembered</span>
+            <div class="memory" id="sim-mem">&mdash;</div>
+          </div>
+          <div class="status" id="sim-status">Press <em>Step</em> to send him out.</div>
+          <div>
+            <span class="ro-lbl">Tally</span>
+            <div class="tally" id="sim-tally">no ambles yet</div>
+          </div>
+        </div>
+      </div>
+      <div class="controls">
+        <button id="sim-step">Step</button>
+        <button id="sim-run">Run amble</button>
+        <button id="sim-new">New afternoon</button>
+        <button id="sim-batch">Run 2,000</button>
+      </div>
+    </div>
+  <figcaption>The ring pins him down: he roams at most three tiles from home, and the
+  tile the verdict lands on is never more than four away.</figcaption>
+</figure>
+
+<hr class="sep">
+<section class="foot">
+  <h3>One thing worth a second look</h3>
+  <p>All of this rests on reading &ldquo;discovered&rdquo; as: <em>his turn record predicts
+  home, and there is no pheromone there.</em> The puzzle's line about not being able to tell
+  home's edges apart turns out to leak nothing extra &mdash; when he genuinely does get home,
+  the fold that took the floor to the ball fixes home only by doing nothing at all, so his
+  arrival edge matches too. Read that clause as doing more work and the number moves.</p>
+  <p style="margin-top:1.1rem">Checked three ways: an exact-rational forward series on the
+  floor converging to 9/20; the ring decomposition verified over 1,860 tiles with no
+  exceptions; and a simulation that rebuilds the truncated tetrahedron independently from a
+  tetrahedron's faces and feeds it the same turn sequence &mdash; 400,000 afternoons gave
+  0.549.</p>
+</section>
+</div>
+
+<script>
+(function(){
+"use strict";
+const SQ3 = Math.sqrt(3), S = 10, R = S/SQ3;
+const NS = "http://www.w3.org/2000/svg";
+const mod = (n,m) => ((n%m)+m)%m;
+const f   = (a,b) => mod(a-b,3);
+const isW = (a,b) => f(a,b) !== 0;
+const ctr = (a,b) => [a*S + b*S/2, -(b*S*SQ3/2)];
+
+function tcls(a,b){ const bp = mod(b,2), s = (b-bp)/2; return mod(a-2*s,6)+","+bp; }
+function okey(a,b){ const p = tcls(a,b), q = tcls(-a,-b); return p<q ? p+"|"+q : q+"|"+p; }
+
+const HK = okey(1,0);
+const FAM = {};
+FAM[okey(1,0)] = 0; FAM[okey(1,-1)] = 1; FAM[okey(2,0)] = 2; FAM[okey(0,1)] = 3;
+const famOf = (a,b) => FAM[okey(a,b)];
+const isRed = (a,b) => okey(a,b) === HK;
+const FCOL  = ["var(--c0)","var(--c1)","var(--c2)","var(--c3)"];
+
+const ANG = [[1,0],[0,1],[-1,1],[-1,0],[0,-1],[1,-1]];
+const wSlots = (a,b) => [0,1,2,3,4,5].filter(k => isW(a+ANG[k][0], b+ANG[k][1]));
+
+function hexPts(a,b){
+  const c = ctr(a,b), r = R*0.955, out = [];
+  for(let k=0;k<6;k++){
+    const t = (30+60*k)*Math.PI/180;
+    out.push((c[0]+r*Math.cos(t)).toFixed(2)+","+(c[1]+r*Math.sin(t)).toFixed(2));
+  }
+  return out.join(" ");
+}
+function el(n,at){ const e = document.createElementNS(NS,n);
+  for(const k in at) e.setAttribute(k,at[k]); return e; }
+
+function tilesWithin(rad, o){
+  const out = [], lim = Math.ceil(rad/S)+4;
+  for(let a=-2*lim;a<=2*lim;a++) for(let b=-2*lim;b<=2*lim;b++){
+    const c = ctr(a,b);
+    if(Math.hypot(c[0]-o[0], c[1]-o[1]) <= rad) out.push([a,b]);
+  }
+  return out;
+}
+
+function drawFloor(svg, opt){
+  const rad = opt.rad, mode = opt.mode;
+  const o = opt.at ? ctr(opt.at[0], opt.at[1]) : [0,0];
+  svg.setAttribute("viewBox", (o[0]-rad)+" "+(o[1]-rad)+" "+(2*rad)+" "+(2*rad));
+  while(svg.firstChild) svg.removeChild(svg.firstChild);
+  const tiles = tilesWithin(rad - R*0.4, o);
+
+  for(let i=0;i<tiles.length;i++){
+    const a = tiles[i][0], b = tiles[i][1];
+    if(isW(a,b)) continue;
+    svg.appendChild(el("polygon",{points:hexPts(a,b), fill:"var(--tile-b)"}));
+  }
+  for(let i=0;i<tiles.length;i++){
+    const a = tiles[i][0], b = tiles[i][1];
+    if(!isW(a,b)) continue;
+    const gone = (mode === "rings") && isRed(a,b);
+    svg.appendChild(el("polygon",{
+      points: hexPts(a,b),
+      fill: gone ? "var(--surface-2)"
+          : ((mode === "families" || mode === "rings") ? FCOL[famOf(a,b)] : "var(--tile-w)"),
+      stroke: gone ? "var(--rule)" : "var(--tile-stroke)",
+      "stroke-width": 0.35,
+      "stroke-dasharray": gone ? "1.3 1.3" : "none"
+    }));
+  }
+  if(mode === "rings"){
+    for(let i=0;i<tiles.length;i++){
+      const a = tiles[i][0], b = tiles[i][1];
+      if(isW(a,b)) continue;
+      const around = ANG.map(d => [a+d[0], b+d[1]]);
+      let ok = true;
+      for(const q of around){
+        const c = ctr(q[0],q[1]);
+        if(isRed(q[0],q[1]) || Math.hypot(c[0]-o[0], c[1]-o[1]) > rad - R*1.2) { ok = false; break; }
+      }
+      if(!ok) continue;
+      const pts = around.map(q => ctr(q[0],q[1]).map(v=>v.toFixed(2)).join(",")).join(" ");
+      svg.appendChild(el("polygon",{points:pts, fill:"none", stroke:"var(--accent)",
+        "stroke-width":2.2, "stroke-linejoin":"round"}));
+    }
+  }
+  if(opt.markHome){
+    const h = ctr(1,0);
+    svg.appendChild(el("circle",{cx:h[0], cy:h[1], r:(R*0.62).toFixed(2),
+      fill:"none", stroke:"var(--paper)", "stroke-width":1.3}));
+  }
+}
+
+/* ---- the ball, built by truncating a tetrahedron ---- */
+const TV = {A:[1,1,1], B:[1,-1,-1], C:[-1,1,-1], D:[-1,-1,1]};
+const cut = (P,Q) => [P[0]+(Q[0]-P[0])/3, P[1]+(Q[1]-P[1])/3, P[2]+(Q[2]-P[2])/3];
+const TF  = [["A","B","C"],["A","C","D"],["A","D","B"],["B","D","C"]];
+const BALL = [];
+TF.forEach(function(t){
+  const X = TV[t[0]], Y = TV[t[1]], Z = TV[t[2]];
+  BALL.push({hex:true, pts:[cut(X,Y),cut(Y,X),cut(Y,Z),cut(Z,Y),cut(Z,X),cut(X,Z)]});
+});
+Object.keys(TV).forEach(function(P){
+  BALL.push({hex:false, pts: Object.keys(TV).filter(q => q !== P).map(q => cut(TV[P],TV[q]))});
+});
+
+function rot(p, ax, ay){
+  let x = p[0], y = p[1], z = p[2], c = Math.cos(ay), s = Math.sin(ay), t;
+  t = x*c + z*s; z = -x*s + z*c; x = t;
+  c = Math.cos(ax); s = Math.sin(ax);
+  t = y*c - z*s; z = y*s + z*c; y = t;
+  return [x,y,z];
+}
+function drawBall(svg, ax, ay, tint){
+  while(svg.firstChild) svg.removeChild(svg.firstChild);
+  const K = 104;
+  BALL.forEach(function(face, i){
+    const P = face.pts.map(p => rot(p, ax, ay));
+    let cx=0, cy=0, cz=0;
+    P.forEach(p => { cx+=p[0]; cy+=p[1]; cz+=p[2]; });
+    cx/=P.length; cy/=P.length; cz/=P.length;
+    const u = [P[1][0]-P[0][0], P[1][1]-P[0][1], P[1][2]-P[0][2]];
+    const v = [P[2][0]-P[0][0], P[2][1]-P[0][1], P[2][2]-P[0][2]];
+    let n = [u[1]*v[2]-u[2]*v[1], u[2]*v[0]-u[0]*v[2], u[0]*v[1]-u[1]*v[0]];
+    if(n[0]*cx + n[1]*cy + n[2]*cz < 0) n = [-n[0],-n[1],-n[2]];
+    const nlen = Math.hypot(n[0],n[1],n[2]);
+    const nz = n[2]/nlen;
+    if(nz <= 0.02) return;
+    const pts = P.map(p => (p[0]*K).toFixed(1)+","+(-p[1]*K).toFixed(1)).join(" ");
+    svg.appendChild(el("polygon",{points: pts,
+      fill: face.hex ? (tint ? FCOL[i] : "var(--tile-w)") : "var(--tile-b)",
+      stroke: "var(--muted)", "stroke-width": 1.2, "stroke-linejoin": "round"}));
+    // shade faces that turn away from the viewer, so the solid reads as a solid
+    svg.appendChild(el("polygon",{points: pts, fill: "#000",
+      opacity: (0.34*(1-nz)).toFixed(3), stroke: "none"}));
+  });
+}
+function spinner(svg, tint){
+  let ax = 2.62, ay = 1.86, drag = null;
+  let auto = !window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+  const paint = () => drawBall(svg, ax, ay, tint);
+  svg.style.cursor = "grab"; svg.style.touchAction = "none";
+  svg.addEventListener("pointerdown", function(e){
+    drag = [e.clientX, e.clientY];
+    if(svg.setPointerCapture) svg.setPointerCapture(e.pointerId);
+    svg.style.cursor = "grabbing";
+  });
+  svg.addEventListener("pointermove", function(e){
+    if(!drag) return;
+    ay += (e.clientX - drag[0]) * 0.012;
+    ax -= (e.clientY - drag[1]) * 0.012;
+    drag = [e.clientX, e.clientY]; paint();
+  });
+  const stop = () => { drag = null; svg.style.cursor = "grab"; };
+  svg.addEventListener("pointerup", stop);
+  svg.addEventListener("pointercancel", stop);
+  let last = 0;
+  (function loop(t){
+    if(auto && !drag && t - last > 33){ ay += 0.007; last = t; paint(); }
+    requestAnimationFrame(loop);
+  })(0);
+  paint();
+  return { toggle: function(){ auto = !auto; return auto; } };
+}
+
+const heroBall = spinner(document.getElementById("ball-hero"), false);
+spinner(document.getElementById("ball-tint"), true);
+const spinBtn = document.getElementById("ball-spin");
+spinBtn.addEventListener("click", function(){
+  spinBtn.setAttribute("aria-pressed", String(heroBall.toggle()));
+});
+
+drawFloor(document.getElementById("floor-bw"),    {rad:52, mode:"plain"});
+drawFloor(document.getElementById("floor-orbit"), {rad:52, mode:"families"});
+
+const ringsSvg = document.getElementById("floor-rings");
+const btnAll = document.getElementById("btn-all"), btnCut = document.getElementById("btn-cut");
+function ringsMode(cut){
+  drawFloor(ringsSvg, {rad:66, mode: cut ? "rings" : "families"});
+  btnAll.setAttribute("aria-pressed", String(!cut));
+  btnCut.setAttribute("aria-pressed", String(cut));
+}
+btnAll.addEventListener("click", function(){ ringsMode(false); });
+btnCut.addEventListener("click", function(){ ringsMode(true); });
+ringsMode(false);
+
+/* ---- simulator ---- */
+const simSvg  = document.getElementById("sim-floor");
+const memEl   = document.getElementById("sim-mem");
+const statEl  = document.getElementById("sim-status");
+const chipEl  = document.getElementById("sim-chips");
+const tallyEl = document.getElementById("sim-tally");
+let walk, tally = {n:0, bust:0}, timer = null;
+
+["HOME","B","C","D"].forEach(function(t){
+  const c = document.createElement("div");
+  c.className = "chip"; c.textContent = t; chipEl.appendChild(c);
+});
+
+function newWalk(){
+  if(timer){ clearInterval(timer); timer = null; }
+  walk = {pos:[1,0], inSlot:0, trail:[[1,0]], turns:[], done:false, bust:false, started:false};
+  render();
+}
+function stepWalk(){
+  if(walk.done) return;
+  const a = walk.pos[0], b = walk.pos[1];
+  let slot;
+  if(!walk.started){
+    const s = wSlots(a,b);
+    slot = s[Math.floor(Math.random()*3)];
+    walk.started = true;
+  }else{
+    const t = Math.floor(Math.random()*3);
+    slot = mod(walk.inSlot + 2*t, 6);
+    walk.turns.push(["B","R","L"][t]);
+  }
+  const np = [a+ANG[slot][0], b+ANG[slot][1]];
+  walk.pos = np; walk.inSlot = mod(slot+3,6); walk.trail.push(np);
+  if(isRed(np[0], np[1])){
+    walk.done = true;
+    walk.bust = !(np[0] === 1 && np[1] === 0);
+    tally.n++; if(walk.bust) tally.bust++;
+  }
+  render();
+}
+function runWalk(){
+  if(walk.done) newWalk();
+  if(timer) clearInterval(timer);
+  timer = setInterval(function(){
+    stepWalk();
+    if(walk.done){ clearInterval(timer); timer = null; }
+  }, 380);
+}
+function batch(n){
+  for(let i=0;i<n;i++){
+    let p = [1,0], slot = 0, started = false;
+    for(;;){
+      let s;
+      if(!started){ const ss = wSlots(p[0],p[1]); s = ss[Math.floor(Math.random()*3)]; started = true; }
+      else s = mod(slot + 2*Math.floor(Math.random()*3), 6);
+      p = [p[0]+ANG[s][0], p[1]+ANG[s][1]]; slot = mod(s+3,6);
+      if(isRed(p[0],p[1])){ tally.n++; if(!(p[0]===1 && p[1]===0)) tally.bust++; break; }
+    }
+  }
+  render();
+}
+function render(){
+  drawFloor(simSvg, {rad:48, mode:"families", markHome:true, at:[1,0]});
+  if(walk.trail.length > 1){
+    svgTrail();
+  }
+  const c = ctr(walk.pos[0], walk.pos[1]);
+  simSvg.appendChild(el("circle",{cx:c[0].toFixed(2), cy:c[1].toFixed(2),
+    r:(R*0.3).toFixed(2), fill:"var(--ink)", stroke:"var(--paper)", "stroke-width":0.9}));
+
+  const fam = famOf(walk.pos[0], walk.pos[1]);
+  const chips = chipEl.children;
+  for(let i=0;i<chips.length;i++){
+    const on = (i === fam);
+    chips[i].dataset.on = on ? "1" : "0";
+    chips[i].style.background = on ? FCOL[i] : "";
+  }
+  memEl.textContent = walk.turns.length ? walk.turns.join(" ") : "\u2014";
+
+  if(!walk.done){
+    statEl.dataset.v = "";
+    statEl.innerHTML = walk.started
+      ? "Walking. His memory does not say <em>home</em> yet."
+      : "Press <em>Step</em> to send him out.";
+  }else if(walk.bust){
+    statEl.dataset.v = "bust";
+    statEl.innerHTML = "Memory says <b>HOME</b> \u2014 but this tile is bare. <b>Busted.</b>";
+  }else{
+    statEl.dataset.v = "safe";
+    statEl.innerHTML = "Memory says <b>HOME</b> \u2014 and there are the pheromones. He suspects nothing.";
+  }
+  tallyEl.innerHTML = tally.n
+    ? "<b>"+tally.bust+"</b> busted of <b>"+tally.n+"</b> = <b>"+(tally.bust/tally.n).toFixed(4)
+      +"</b><br>expected 11/20 = 0.5500"
+    : "no ambles yet";
+}
+function svgTrail(){
+  const d = walk.trail.map(p => ctr(p[0],p[1]).map(v=>v.toFixed(2)).join(",")).join(" ");
+  simSvg.appendChild(el("polyline",{points:d, fill:"none", stroke:"var(--ink)",
+    "stroke-width":1.5, "stroke-linejoin":"round", "stroke-linecap":"round", opacity:.55}));
+}
+document.getElementById("sim-step").addEventListener("click", function(){
+  if(walk.done) newWalk(); else stepWalk();
+});
+document.getElementById("sim-run").addEventListener("click", runWalk);
+document.getElementById("sim-new").addEventListener("click", newWalk);
+document.getElementById("sim-batch").addEventListener("click", function(){ batch(2000); });
+newWalk();
+})();
+</script>
