@@ -1,6 +1,6 @@
 # Andy's Afternoon Amble — August 2026
 
-<https://www.janestreet.com/puzzles/current-puzzle/>
+<https://www.janestreet.com/puzzles/andys-afternoon-amble-index/>
 
 Andy the ant has moved on from his classic 'Telstar' soccer ball homeland to live on a
 simpler spherical surface consisting of four white hexagons that are surrounded by
