@@ -2,7 +2,7 @@
 
 **Answer: 11/20**
 
-Jane Street, August 2026 — [Andy's Afternoon Amble](https://www.janestreet.com/puzzles/current-puzzle/).
+Jane Street, August 2026 — [Andy's Afternoon Amble](https://www.janestreet.com/puzzles/andys-afternoon-amble-index/).
 
 ---
 
