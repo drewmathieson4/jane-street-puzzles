@@ -8,5 +8,6 @@
 | `can-u-dig-it.jpg` | the puzzle image as published |
 | `answerscript.py` | the four-line script that turns the final clue into the answer |
 | `first-attempts.jpg` | paper work from the substitution/near-miss phase |
-| `final-grid.jpg` | the finished grid, every word ringed |
+| `final-grid-solved.svg` | the solved grid — all 27 words traced, leftover letters circled |
+| `final-grid.jpg` | the finished grid as worked on paper |
 

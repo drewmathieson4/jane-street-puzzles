@@ -136,7 +136,7 @@ According to Google it's likely **`egebamyasi`**, which is in the grid, just two
 
 Things that come in cans or are can-related.
 
-`aluminum` · `opener` · `spray` · `paint` · `trash` · `soda` · `tin` · `axe` · `jar` · `can` · `oil` · `bin` · `egebamyasi`
+`aluminum`, `opener`, `spray`, `paint`, `trash`, `soda`, `fire`, `tin`, `axe`, `jar`, `can`, `oil`, `bin`, `egebamyasi`
 
 `egebamyasi` is the band Can's 1972 album.  I'm assuming we were meant to figure that out once the clue became clear.
 
@@ -150,7 +150,18 @@ These are all about either number systems or fingers and toes.
 
 ## Final grid with found words
 
-![Final grid — every word ringed, leftover letters spelling the clue](final-grid.jpg)
+Every word traced, every leftover letter circled. Teal paths are digit words, tan paths are can words; the small ring marks where each word starts.
+
+![The solved grid: 27 words traced, 58 leftover letters circled, spelling the clue](final-grid-solved.svg)
+
+The tiling is exact and machine-checked: **27 words** covering **138 of 196 cells**, crossing at **17** cells, leaving **58** letters that read as the clue with no spares and nothing left over.
+
+<details>
+<summary>My marked-up paper grid</summary>
+
+![Final grid, worked on paper](final-grid.jpg)
+
+</details>
 
 ---
 
