@@ -6,3 +6,7 @@
 *.swp
 .idea/
 .vscode/
+
+# local-only solving aids — never published
+**/scratch/
+*.local.*
