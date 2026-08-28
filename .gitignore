@@ -10,3 +10,6 @@
 # local-only solving aids — never published
 **/scratch/
 *.local.*
+
+# python env
+.venv/
