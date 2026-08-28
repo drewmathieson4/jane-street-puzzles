@@ -34,6 +34,20 @@ Also:
 
 This costs nothing that matters here — see the performance note below.
 
+## Before editing any existing file
+
+**Commit the current state to git first.** Always, before modifying a file that already exists.
+This makes every change recoverable from the Source Control panel, even if there are unsaved
+edits in the editor that would otherwise be lost when the file is rewritten.
+
+Then say what file is about to change, so it can be saved (`Cmd+S`) beforehand — VS Code
+auto-reloads a file from disk only when the buffer has no unsaved changes. If a reload is needed
+anyway: Command Palette -> **File: Revert File**, or close and reopen the tab for `.ipynb`.
+
+Unsaved VS Code buffers are written to a hot-exit backup under
+`~/Library/Application Support/Code/Backups/` every few seconds, and can be recovered from there
+if something is overwritten. This is a last resort, not the plan.
+
 ## Solver work
 
 Puzzles are solved with **OR-Tools CP-SAT** in Jupyter notebooks. Use the modern `snake_case`
