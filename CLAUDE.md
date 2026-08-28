@@ -3,6 +3,18 @@
 My solutions, tools, and notes for [Jane Street's monthly puzzles](https://www.janestreet.com/puzzles/).
 One directory per puzzle, named `YYYY-MM` after the month the puzzle was published.
 
+## Explain first, don't demonstrate
+
+**Answer in prose before running anything.** Say *why* — the reasoning, the tradeoff, the number
+you expect and where it comes from. Running code to show me is slow, and I almost always don't
+need the demo.
+
+If an example would genuinely add something the explanation can't, **ask first**. The answer is
+usually no.
+
+This is about demonstrations, not work. Running code to actually do the task — solving, testing a
+change, checking something I asked you to check — is fine and doesn't need permission.
+
 ## Code style: readability first, always
 
 **All code in this repo is written to be read by a human who is still learning the language.**
