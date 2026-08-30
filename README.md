@@ -8,6 +8,7 @@ One directory per puzzle, named `YYYY-MM`.
 | [Andy's Afternoon Amble](https://www.janestreet.com/puzzles/andys-afternoon-amble-index/) (August 2026) | [`2026-08/`](2026-08/) | [**solved &mdash; 11/20**](2026-08/SOLUTION.md) |
 | [‘Pent-Up’ Frustration 3 / Knight Moves 7](https://www.janestreet.com/puzzles/pent-up-frustration-3-knight-moves-7-index/) (July 2026) | [`2026-07/`](2026-07/) | [**solved — 33609**](2026-07/SOLUTION.md)|
 | [Can U Dig It?](https://www.janestreet.com/puzzles/can-u-dig-it-index/) (April 2026) | [`2026-04/`](2026-04/) | [**solved - 3599**](2026-04/SOLUTION.md)|
+| [Minesweeping](https://www.janestreet.com/puzzles/minesweeping-index/) (October 2014) | [`2014-10/`](2014-10/) | [**best score - 26/27**](2014-10/minesweeping.ipynb) |
 | [Superflip](https://www.janestreet.com/puzzles/superflip-index/) (September 2014) | [`2014-09/`](2014-09/) | [**solved - 24794911296**](2014-09/superflip.ipynb) |
 | [Number Cross](https://www.janestreet.com/puzzles/number-cross-index/) (August 2014) | [`2014-08/`](2014-08/) | [**solved - 407358**](2014-08/number_cross.ipynb) |
 | [Chain Reaction](https://www.janestreet.com/puzzles/chain-reaction-index/) (July 2014) | [`2014-07/`](2014-07/) | [**best score - 77**](2014-07/chain-reaction.ipynb) |
