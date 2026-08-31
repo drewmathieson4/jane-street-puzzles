@@ -1,7 +1,8 @@
 # Jane Street puzzles — working notes
 
 My solutions, tools, and notes for [Jane Street's monthly puzzles](https://www.janestreet.com/puzzles/).
-One directory per puzzle, named `YYYY-MM` after the month the puzzle was published.
+One directory per puzzle, named `YYYY-MM` after the month the puzzle was published, grouped
+inside a `YYYY/` directory per year (so January 2014 lives at `2014/2014-01/`).
 
 ## Explain first, don't demonstrate
 
@@ -93,8 +94,8 @@ it is unrelated to Python style.
 5. Drop the objective, constrain `total == best`, and enumerate.
 6. Run `check()` on everything before submitting.
 
-[`2014-01/sum-of-squares.ipynb`](2014-01/sum-of-squares.ipynb) is the worked reference for this
-method and doubles as a CP-SAT tutorial.
+[`2014/2014-01/sum-of-squares.ipynb`](2014/2014-01/sum-of-squares.ipynb) is the worked reference
+for this method and doubles as a CP-SAT tutorial.
 
 ## Puzzles I want to solve unaided
 
@@ -102,6 +103,6 @@ Some puzzles are being solved without help. **Never read or fetch the published 
 for these**, and don't reveal the answer in chat — leave notebook outputs cleared so I see it
 first when I run them.
 
-- `2026-04` — Can U Dig It?
-- `2014-01` — Sum of Squares
-- `2014-02` — Hooks
+- `2026/2026-04` — Can U Dig It?
+- `2014/2014-01` — Sum of Squares
+- `2014/2014-02` — Hooks
