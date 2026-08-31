@@ -1,0 +1,271 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Wrong Division — printable</title>
+<style>
+@page { size: Letter portrait; margin: 0.4in; }
+* { box-sizing: border-box; }
+body {
+  margin: 0; background: #eceef1; color: #111827;
+  font: 14px/1.45 -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+}
+
+/* Control bar: hidden when printing (see @media print below). */
+.controls {
+  position: sticky; top: 0; z-index: 5; background: #fff; border-bottom: 1px solid #d7dbe0;
+  padding: 10px 16px; display: flex; gap: 16px; align-items: center; flex-wrap: wrap;
+}
+.controls label { font-size: 13px; display: flex; gap: 6px; align-items: center; }
+button, select { font: inherit; border: 1px solid #d7dbe0; border-radius: 7px; padding: 5px 10px; background: #fff; }
+button { cursor: pointer; }
+button.primary { background: #111827; color: #fff; border-color: #111827; }
+.note { font-size: 12px; color: #6b7280; }
+
+/* One .page is one sheet of Letter paper; it holds one or two .sheet copies of the puzzle. */
+#sheets { padding: 18px; display: flex; flex-direction: column; align-items: center; gap: 18px; }
+.page {
+  width: 7.7in; height: 10.2in; background: #fff; padding: 0.2in; display: grid; gap: 0.25in;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, .15);
+}
+.page.n1 { grid-template-rows: 1fr; }
+.page.n2 { grid-template-rows: 1fr 1fr; }
+
+.sheet { display: flex; flex-direction: column; min-height: 0; }
+.sheet h1 { font-size: 18px; margin: 0 0 2px; }
+.sheet .statement { font-size: 13px; margin: 0 0 3px; color: #374151; }
+.sheet .link { font-size: 11px; color: #6b7280; margin: 0 0 6px; }
+/* min-height: 0 lets the drawing shrink to fit when there are two copies on a page. */
+.sheet svg { width: 100%; height: auto; max-height: 100%; flex: 1 1 auto; min-height: 0; }
+.sheet .answer { font-size: 13px; margin-top: 6px; border-top: 1px solid #d7dbe0; padding-top: 6px; }
+
+@media print {
+  body { background: #fff; }
+  .controls { display: none; }
+  #sheets { padding: 0; gap: 0; display: block; }
+  .page { box-shadow: none; width: 100%; height: 10.2in; break-after: page; page-break-after: always; }
+  .page:last-child { break-after: auto; page-break-after: auto; }
+}
+</style>
+</head>
+<body>
+
+<div class="controls">
+  <strong>Wrong Division — printable</strong>
+  <label>per page
+    <select id="per">
+      <option value="1" selected>1</option>
+      <option value="2">2</option>
+    </select>
+  </label>
+  <label>given digits
+    <select id="shade">
+      <option value="faint" selected>faint (write over them)</option>
+      <option value="dark">dark</option>
+    </select>
+  </label>
+  <label><input type="checkbox" id="labels" checked> column / row labels</label>
+  <button class="primary" onclick="window.print()">Print</button>
+  <span class="note">Letter portrait. Every printed digit is off by one, so faint digits leave room to pencil in the real one.</span>
+</div>
+
+<div id="sheets"></div>
+
+<script>
+/*
+ * The puzzle layout, exactly as Jane Street printed it (see wrong-division.ipynb for the image).
+ *
+ * Columns are numbered 1..8 left to right across the 8-digit dividend. The five quotient digits
+ * sit over columns 4..8. Each work row starts at some column and runs to the right; a null is a
+ * blank cell to write in, a number is a printed digit (which the puzzle says is off by one).
+ * A row with a subtraction bar is a "divisor times quotient digit" product; the row after it is
+ * the remainder with the next dividend digit(s) brought down.
+ */
+const DIVISOR_CELLS = 4;
+const DIVIDEND_CELLS = 8;
+const QUOTIENT_FIRST_COLUMN = 4;
+const QUOTIENT_CELLS = 5;
+
+const WORK_ROWS = [
+  { firstColumn: 1, cells: [null, 5, null, 5],             hasSubtractionBar: true  },
+  { firstColumn: 2, cells: [1, null, 2, null, 5],          hasSubtractionBar: false },
+  { firstColumn: 2, cells: [2, null, 8, null, null],       hasSubtractionBar: true  },
+  { firstColumn: 4, cells: [5, null, 8, 1],                hasSubtractionBar: false },
+  { firstColumn: 4, cells: [3, 7, null, null],             hasSubtractionBar: true  },
+  { firstColumn: 4, cells: [2, null, null, 2, null],       hasSubtractionBar: false },
+  { firstColumn: 4, cells: [null, null, null, null, null], hasSubtractionBar: false },
+];
+
+/* Drawing geometry, in SVG user units. The SVG is scaled to the page width, so only the ratios matter. */
+const CELL_WIDTH = 44;
+const ROW_HEIGHT = 54;
+const BRACKET_WIDTH = 24;   // gap between the divisor and the dividend, where the ")" bracket goes
+const BAR_GAP = 12;         // extra space under a double subtraction bar so it does not crowd the next row
+const MARGIN = 16;
+const LABEL_BAND = 20;      // room above and below the layout for the optional labels
+
+const INK = "#111827";
+const FAINT_INK = "#a3a8b0";
+const LABEL_INK = "#6b7280";
+
+function divisorCellX(index) {
+  /* Returns the left edge of divisor cell `index` (0..3). */
+  return MARGIN + index * CELL_WIDTH;
+}
+
+function dividendColumnX(column) {
+  /* Returns the left edge of dividend column `column` (1..8). */
+  return MARGIN + DIVISOR_CELLS * CELL_WIDTH + BRACKET_WIDTH + (column - 1) * CELL_WIDTH;
+}
+
+function blankCell(x, rowY) {
+  /* Returns the SVG for an empty cell: a short underline to write a digit on. */
+  const lineY = rowY + ROW_HEIGHT - 9;
+  return `<line x1="${x + 7}" y1="${lineY}" x2="${x + CELL_WIDTH - 7}" y2="${lineY}" `
+       + `stroke="${INK}" stroke-width="1.6"/>`;
+}
+
+function digitCell(x, rowY, digit, digitColor) {
+  /* Returns the SVG for a cell that shows one of the puzzle's printed digits. */
+  const centerX = x + CELL_WIDTH / 2;
+  const baselineY = rowY + ROW_HEIGHT - 13;
+  return `<text x="${centerX}" y="${baselineY}" font-size="30" text-anchor="middle" `
+       + `font-family="Helvetica, Arial, sans-serif" fill="${digitColor}">${digit}</text>`;
+}
+
+function cell(x, rowY, digit, digitColor) {
+  /* Returns the SVG for one cell, blank or printed. */
+  if (digit === null) {
+    return blankCell(x, rowY);
+  } else {
+    return digitCell(x, rowY, digit, digitColor);
+  }
+}
+
+function subtractionBar(xLeft, xRight, rowY) {
+  /* Returns the SVG for the double rule drawn under a product row, as in the original. */
+  const topY = rowY + ROW_HEIGHT - 1;
+  const bottomY = topY + 4;
+  return `<line x1="${xLeft}" y1="${topY}" x2="${xRight}" y2="${topY}" stroke="${INK}" stroke-width="2"/>`
+       + `<line x1="${xLeft}" y1="${bottomY}" x2="${xRight}" y2="${bottomY}" stroke="${INK}" stroke-width="2"/>`;
+}
+
+function label(x, y, text, anchor) {
+  /* Returns the SVG for a small grey label (column numbers, row numbers). */
+  return `<text x="${x}" y="${y}" font-size="10" text-anchor="${anchor}" fill="${LABEL_INK}" `
+       + `font-family="ui-monospace, Menlo, monospace">${text}</text>`;
+}
+
+function buildLayoutSvg(showLabels, digitColor) {
+  /* Returns the whole long-division layout as an SVG string. */
+  const parts = [];
+  const rightEdge = dividendColumnX(DIVIDEND_CELLS) + CELL_WIDTH;
+
+  let y = MARGIN;
+  if (showLabels) {
+    y = y + LABEL_BAND;
+  }
+
+  // Quotient row, above the vinculum.
+  const quotientY = y;
+  for (let index = 0; index < QUOTIENT_CELLS; index++) {
+    const column = QUOTIENT_FIRST_COLUMN + index;
+    parts.push(blankCell(dividendColumnX(column), quotientY));
+    if (showLabels) {
+      parts.push(label(dividendColumnX(column) + CELL_WIDTH / 2, quotientY - 6, "Q" + (index + 1), "middle"));
+    }
+  }
+  y = y + ROW_HEIGHT;
+
+  // Divisor, bracket, and dividend row.
+  const dividendY = y;
+  for (let index = 0; index < DIVISOR_CELLS; index++) {
+    parts.push(blankCell(divisorCellX(index), dividendY));
+  }
+  for (let column = 1; column <= DIVIDEND_CELLS; column++) {
+    parts.push(blankCell(dividendColumnX(column), dividendY));
+  }
+  // The bracket is a thick right angle: a vertical stroke left of the dividend and the vinculum over it.
+  const bracketX = MARGIN + DIVISOR_CELLS * CELL_WIDTH + BRACKET_WIDTH / 2;
+  const vinculumY = dividendY - 2;
+  parts.push(`<polyline points="${bracketX},${dividendY + ROW_HEIGHT - 6} ${bracketX},${vinculumY} ${rightEdge},${vinculumY}" `
+           + `fill="none" stroke="${INK}" stroke-width="3" stroke-linejoin="miter"/>`);
+  y = y + ROW_HEIGHT;
+
+  // Work rows.
+  for (let rowIndex = 0; rowIndex < WORK_ROWS.length; rowIndex++) {
+    const row = WORK_ROWS[rowIndex];
+    const rowY = y;
+    const firstX = dividendColumnX(row.firstColumn);
+    const lastX = dividendColumnX(row.firstColumn + row.cells.length - 1);
+
+    for (let cellIndex = 0; cellIndex < row.cells.length; cellIndex++) {
+      const x = dividendColumnX(row.firstColumn + cellIndex);
+      parts.push(cell(x, rowY, row.cells[cellIndex], digitColor));
+    }
+    if (showLabels) {
+      parts.push(label(rightEdge + 10, rowY + ROW_HEIGHT - 14, "row " + (rowIndex + 1), "start"));
+    }
+    y = y + ROW_HEIGHT;
+    if (row.hasSubtractionBar) {
+      parts.push(subtractionBar(firstX + 2, lastX + CELL_WIDTH - 2, rowY));
+      y = y + BAR_GAP;
+    }
+  }
+
+  // Column labels under the whole layout.
+  if (showLabels) {
+    const labelY = y + 12;
+    for (let column = 1; column <= DIVIDEND_CELLS; column++) {
+      parts.push(label(dividendColumnX(column) + CELL_WIDTH / 2, labelY, "c" + column, "middle"));
+    }
+    parts.push(label(divisorCellX(0) + (DIVISOR_CELLS * CELL_WIDTH) / 2, labelY, "divisor", "middle"));
+    y = y + LABEL_BAND;
+  }
+
+  const width = rightEdge + MARGIN + (showLabels ? 40 : 0);   // extra room on the right for "row n" labels
+  const height = y + MARGIN;
+  return `<svg viewBox="0 0 ${width} ${height}" xmlns="http://www.w3.org/2000/svg">`
+       + `<rect width="${width}" height="${height}" fill="#fff"/>`
+       + parts.join("")
+       + `</svg>`;
+}
+
+function buildSheet(showLabels, digitColor) {
+  /* Returns the HTML for one copy of the puzzle: heading, statement, layout, answer line. */
+  return `<div class="sheet">
+    <h1>Wrong Division — Jane Street, November 2014</h1>
+    <p class="statement">Each digit shown is off by one. Given that there is no remainder,
+      can you determine the 8-digit dividend?</p>
+    <p class="link">janestreet.com/puzzles/wrong-division-index/</p>
+    ${buildLayoutSvg(showLabels, digitColor)}
+    <p class="answer">8-digit dividend: ______________________________</p>
+  </div>`;
+}
+
+function buildPages() {
+  /* Rebuilds every page from the current control settings. */
+  const copiesPerPage = Number(document.getElementById("per").value);
+  const shade = document.getElementById("shade").value;
+  const showLabels = document.getElementById("labels").checked;
+
+  let digitColor = INK;
+  if (shade === "faint") {
+    digitColor = FAINT_INK;
+  }
+
+  let sheetsHtml = "";
+  for (let copy = 0; copy < copiesPerPage; copy++) {
+    sheetsHtml = sheetsHtml + buildSheet(showLabels, digitColor);
+  }
+  document.getElementById("sheets").innerHTML = `<div class="page n${copiesPerPage}">${sheetsHtml}</div>`;
+}
+
+const controlIds = ["per", "shade", "labels"];
+for (let index = 0; index < controlIds.length; index++) {
+  document.getElementById(controlIds[index]).addEventListener("input", buildPages);
+}
+buildPages();
+</script>
+</body>
+</html>
