@@ -8,6 +8,7 @@ One directory per puzzle, named `YYYY-MM`, grouped inside a `YYYY/` directory pe
 | [Andy's Afternoon Amble](https://www.janestreet.com/puzzles/andys-afternoon-amble-index/) (August 2026) | [`2026/2026-08/`](2026/2026-08/) | [**solved &mdash; 11/20**](2026/2026-08/andys-afternoon-amble.ipynb) |
 | [‘Pent-Up’ Frustration 3 / Knight Moves 7](https://www.janestreet.com/puzzles/pent-up-frustration-3-knight-moves-7-index/) (July 2026) | [`2026/2026-07/`](2026/2026-07/) | [**solved — 33609**](2026/2026-07/pent-up-frustration-3-knight-moves-7.ipynb)|
 | [Can U Dig It?](https://www.janestreet.com/puzzles/can-u-dig-it-index/) (April 2026) | [`2026/2026-04/`](2026/2026-04/) | [**solved - 3599**](2026/2026-04/can-u-dig-it.ipynb)|
+| [Sum One, Somewhere](https://www.janestreet.com/puzzles/sum-one-somewhere-index/) (April 2025) | [`2025/2025-04/`](2025/2025-04/) | [**solved — .5306035754**](2025/2025-04/sum-one-somewhere.ipynb) |
 | [Deck the Cards](https://www.janestreet.com/puzzles/deck-the-cards-index/) (December 2014) | [`2014/2014-12/`](2014/2014-12/) | [**solved — 7192**](2014/2014-12/deck-the-cards.ipynb) |
 | [Wrong Division](https://www.janestreet.com/puzzles/wrong-division-index/) (November 2014) | [`2014/2014-11/`](2014/2014-11/) | [**solved — 58975605**](2014/2014-11/wrong-division.ipynb) |
 | [Minesweeping](https://www.janestreet.com/puzzles/minesweeping-index/) (October 2014) | [`2014/2014-10/`](2014/2014-10/) | [**best score - 26/27**](2014/2014-10/minesweeping.ipynb) |
