@@ -10,6 +10,7 @@ One directory per puzzle, named `YYYY-MM`, grouped inside a `YYYY/` directory pe
 | [‘Pent-Up’ Frustration 3 / Knight Moves 7](https://www.janestreet.com/puzzles/pent-up-frustration-3-knight-moves-7-index/) (July 2026) | [`2026/2026-07/`](2026/2026-07/) | [**solved — 33609**](2026/2026-07/pent-up-frustration-3-knight-moves-7.ipynb)|
 | [Can U Dig It?](https://www.janestreet.com/puzzles/can-u-dig-it-index/) (April 2026) | [`2026/2026-04/`](2026/2026-04/) | [**solved - 3599**](2026/2026-04/can-u-dig-it.ipynb)|
 | [Sum One, Somewhere](https://www.janestreet.com/puzzles/sum-one-somewhere-index/) (April 2025) | [`2025/2025-04/`](2025/2025-04/) | [**solved — .5306035754**](2025/2025-04/sum-one-somewhere.ipynb) |
+| [Number Cross 2](https://www.janestreet.com/puzzles/number-cross-2-index/) (August 2015) | [`2015/2015-08/`](2015/2015-08/) | [**solved — 276**](2015/2015-08/number-cross-2.ipynb) |
 | [Tic Tac Oh...](https://www.janestreet.com/puzzles/tic-tac-oh-index/) (May 2015) | [`2015/2015-05/`](2015/2015-05/) | [**solved — 191/192**](2015/2015-05/tic-tac-oh.ipynb) |
 | [Hall of Mirrors](https://www.janestreet.com/puzzles/hall-of-mirrors-index/) (April 2015) | [`2015/2015-04/`](2015/2015-04/) | [**solved — 77, proven optimal**](2015/2015-04/hall-of-mirrors.ipynb) |
 | [Ticker Treat](https://www.janestreet.com/puzzles/ticker-treat-index/) (March 2015) | [`2015/2015-03/`](2015/2015-03/) | [**solved — S**](2015/2015-03/ticker-treat.ipynb) |
