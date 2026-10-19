@@ -5,7 +5,8 @@ One directory per puzzle, named `YYYY-MM`, grouped inside a `YYYY/` directory pe
 
 | Puzzle | Directory | Solution |
 |---|---|---|
-| [Hint Singles](https://www.janestreet.com/puzzles/hint-singles-index/) (September 2026) | [`2026-09/`](2026-09/) | [**submitted — The Beatless**](2026-09/hint-singles.ipynb) |
+| [It's a Metric, Too](https://www.janestreet.com/puzzles/current-puzzle/) (October 2026) | [`2026/2026-10/`](2026/2026-10/) | [in progress — sandbox](2026/2026-10/metric-too-sandbox.html) |
+| [Hint Singles](https://www.janestreet.com/puzzles/hint-singles-index/) (September 2026) | [`2026/2026-09/`](2026/2026-09/) | [**submitted — The Beatless**](2026/2026-09/hint-singles.ipynb) |
 | [Andy's Afternoon Amble](https://www.janestreet.com/puzzles/andys-afternoon-amble-index/) (August 2026) | [`2026/2026-08/`](2026/2026-08/) | [**solved &mdash; 11/20**](2026/2026-08/andys-afternoon-amble.ipynb) |
 | [‘Pent-Up’ Frustration 3 / Knight Moves 7](https://www.janestreet.com/puzzles/pent-up-frustration-3-knight-moves-7-index/) (July 2026) | [`2026/2026-07/`](2026/2026-07/) | [**solved — 33609**](2026/2026-07/pent-up-frustration-3-knight-moves-7.ipynb)|
 | [Regional Artwork](https://www.janestreet.com/puzzles/regional-artwork-index/) (June 2026) | [`2026/2026-06/`](2026/2026-06/) | [**solved — American Graffiti**](2026/2026-06/regional-artwork.ipynb) |

@@ -1,0 +1,1306 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>It's a Metric, Too — Sandbox</title>
+<style>
+:root{
+  --bg:#f4f5f7; --panel:#ffffff; --ink:#1b1f24; --muted:#6b7280; --line:#d7dbe0;
+  --bad:#dc2626; --good:#15803d; --warn:#b45309; --accent:#4338ca;
+}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);
+  font:14px/1.45 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;}
+h1{font-size:16px;margin:0;font-weight:650;letter-spacing:-.01em}
+h2{font-size:11px;margin:0 0 8px;text-transform:uppercase;letter-spacing:.09em;color:var(--muted);
+  font-weight:650;display:flex;align-items:center;gap:8px}
+button{font:inherit;background:#fff;color:var(--ink);border:1px solid var(--line);
+  border-radius:7px;padding:5px 9px;cursor:pointer;white-space:nowrap}
+button:hover:not(:disabled){background:#eef0f3}
+button:disabled{opacity:.4;cursor:not-allowed}
+button.on{background:var(--ink);color:#fff;border-color:var(--ink)}
+button.sm{padding:2px 7px;font-size:12px}
+button.danger{color:var(--bad);border-color:#f3b3ad}
+input,select,textarea{font:inherit;border:1px solid var(--line);border-radius:6px;
+  padding:4px 7px;background:#fff;color:var(--ink)}
+.mono{font-family:ui-monospace,SFMono-Regular,Menlo,monospace}
+
+#top{display:flex;align-items:center;gap:7px;padding:9px 12px;background:var(--panel);
+  border-bottom:1px solid var(--line);flex-wrap:wrap;position:sticky;top:0;z-index:20}
+.seg{display:flex;border:1px solid var(--line);border-radius:8px;overflow:hidden}
+.seg button{border:0;border-radius:0;border-right:1px solid var(--line)}
+.seg button:last-child{border-right:0}
+.grow{flex:1}
+.hint{color:var(--muted);font-size:12px}
+.vr{width:1px;height:22px;background:var(--line)}
+#modeHint{padding:6px 16px;background:#eef2ff;color:#3730a3;font-size:12.5px;
+  border-bottom:1px solid var(--line)}
+
+#wrap{display:flex;gap:16px;padding:16px;align-items:flex-start}
+#boardCol{flex:0 0 auto}
+#side{flex:1 1 auto;min-width:360px;max-width:540px;display:flex;flex-direction:column;gap:12px}
+.card{background:var(--panel);border:1px solid var(--line);border-radius:11px;padding:12px 13px}
+.card.scroll{max-height:340px;overflow:auto}
+
+.strip{border-radius:9px;padding:9px 12px;margin:8px 16px 0;display:none}
+.strip.show{display:block}
+#flash{background:#ecfdf5;border:1px solid #6ee7b7;color:#065f46}
+#storeWarn{background:#fffbeb;border:1px solid #fcd34d;color:#78350f}
+
+table{border-collapse:collapse;width:100%;font-size:12.5px}
+th{text-align:left;font-weight:600;color:var(--muted);font-size:11px;text-transform:uppercase;
+  letter-spacing:.05em;padding:2px 6px 5px;border-bottom:1px solid var(--line)}
+td{padding:3px 6px;border-bottom:1px solid #eef0f2;vertical-align:middle}
+tr.click{cursor:pointer}
+tr.click:hover td{background:#eef2ff}
+tr.act td{background:#e0e7ff}
+.swatch{display:inline-block;width:14px;height:14px;border-radius:4px;border:1px solid rgba(0,0,0,.25);
+  vertical-align:-2px;margin-right:6px}
+.chip{display:inline-block;border-radius:999px;padding:0 8px;font-size:11.5px;font-weight:600;white-space:nowrap}
+.chip.ok{background:#dcfce7;color:#14532d}
+.chip.bad{background:#fee2e2;color:#7f1d1d}
+.chip.warn{background:#fef3c7;color:#78350f}
+.chip.mut{background:#f3f4f6;color:#4b5563}
+.rowsums{display:flex;flex-wrap:wrap;gap:5px;margin:6px 0}
+.rowsums span{border:1px solid var(--line);border-radius:6px;padding:1px 7px;
+  font-variant-numeric:tabular-nums;font-size:12px}
+.rowsums span.partial{border-style:dashed;color:var(--muted)}
+.big{font-size:24px;font-weight:650;font-variant-numeric:tabular-nums}
+.warn{color:var(--bad);font-weight:600}
+.okc{color:var(--good);font-weight:600}
+.mut{color:var(--muted)}
+.leg{display:flex;gap:14px;flex-wrap:wrap;font-size:12px;color:var(--muted);margin-top:8px;align-items:center}
+.leg i{display:inline-block;width:14px;height:14px;vertical-align:-3px;margin-right:4px;
+  border:1px solid var(--line);border-radius:3px}
+
+#tip{position:fixed;pointer-events:none;background:#111827;color:#fff;padding:6px 9px;
+  border-radius:7px;font-size:12px;z-index:99;display:none;white-space:nowrap;
+  box-shadow:0 4px 14px rgba(0,0,0,.25)}
+
+dialog{border:1px solid var(--line);border-radius:12px;padding:16px;max-width:760px;width:92vw;
+  background:var(--panel);color:var(--ink)}
+dialog::backdrop{background:rgba(0,0,0,.35)}
+dialog h3{margin:14px 0 8px;font-size:15px}
+dialog h3:first-child{margin-top:0}
+dialog p,dialog li{font-size:13.5px}
+dialog img{max-width:100%;border:1px solid var(--line);border-radius:8px;margin-top:8px}
+#ioText{width:100%;height:280px;font:12px/1.4 ui-monospace,Menlo,monospace}
+#notes{width:100%;height:120px;resize:vertical;line-height:1.5}
+kbd{font:11px ui-monospace,Menlo,monospace;border:1px solid var(--line);border-bottom-width:2px;
+  border-radius:4px;padding:0 4px;background:#f9fafb}
+svg{display:block;user-select:none}
+svg text{pointer-events:none}
+.cellhit{cursor:pointer}
+</style>
+</head>
+<body>
+
+<div id="top">
+  <h1>It's a Metric, Too</h1>
+  <div class="seg" id="puzzleSeg">
+    <button data-puzzle="main">11×11 puzzle</button>
+    <button data-puzzle="example">5×5 example</button>
+  </div>
+  <div class="seg" id="modeSeg">
+    <button data-mode="paint">Paint</button>
+    <button data-mode="erase">Erase</button>
+    <button data-mode="probe">Probe</button>
+  </div>
+  <button id="undoBtn">Undo</button>
+  <button id="redoBtn">Redo</button>
+  <span class="vr"></span>
+  <label class="hint"><input type="checkbox" id="showSizes"> state sizes</label>
+  <label class="hint"><input type="checkbox" id="showCosts"> cost to capitol</label>
+  <span class="grow"></span>
+  <button id="exampleSolutionBtn" style="display:none">Load example solution</button>
+  <button id="rulesBtn">Rules</button>
+  <button id="slotsBtn">Slots</button>
+  <button id="ioBtn">Export / Import</button>
+  <button id="resetBtn">Reset</button>
+</div>
+
+<div id="modeHint"></div>
+<div id="storeWarn" class="strip">
+  Autosave is unavailable here, so work will be lost on reload. Use <b>Export / Import</b>,
+  or serve the folder: <code>python3 -m http.server 8731</code> then open
+  <code>http://127.0.0.1:8731/metric-too-sandbox.html</code>.</div>
+<div id="flash" class="strip"></div>
+
+<div id="wrap">
+  <div id="boardCol">
+    <svg id="board"></svg>
+    <div class="leg">
+      <span><i style="background:repeating-linear-gradient(135deg,#fff 0 4px,#e5e7eb 4px 6px)"></i>unassigned</span>
+      <span><i style="border:0;border-left:3px solid #1b1f24;border-radius:0;width:3px"></i>state border</span>
+      <span><i style="background:#1b1f24;border-radius:50%;width:10px;height:10px"></i>capitol</span>
+      <span><i style="background:#4338ca;height:4px;border:0;border-radius:2px"></i>cheapest route</span>
+      <span><i style="border:2px solid #4338ca"></i>selected state</span>
+    </div>
+  </div>
+
+  <div id="side">
+    <div class="card scroll">
+      <h2>States <span class="grow"></span>
+        <button class="sm" id="newStateBtn">+ new state</button>
+        <button class="sm" id="dropEmptyBtn">drop empty</button></h2>
+      <table id="statesTable"></table>
+      <div class="mut" id="statesHelp" style="font-size:12px;margin-top:6px"></div>
+    </div>
+
+    <div class="card">
+      <h2>Answer</h2>
+      <div id="answerBox"></div>
+    </div>
+
+    <div class="card scroll">
+      <h2>Clues <span class="grow"></span><span class="hint" id="clueSummary"></span></h2>
+      <table id="cluesTable"></table>
+    </div>
+
+    <div class="card">
+      <h2>Probe</h2>
+      <div id="probeBox" class="mut">Click a cell in Probe mode, or click a clue row, to trace its cheapest route to a capitol.</div>
+    </div>
+
+    <div class="card">
+      <h2>Notes</h2>
+      <textarea id="notes" placeholder="Deductions, dead ends, things to try…"></textarea>
+    </div>
+  </div>
+</div>
+
+<div id="tip"></div>
+
+<dialog id="rulesDlg">
+  <h3>The puzzle</h3>
+  <p>The 11-by-11 region can be subdivided into various states. A “state” is a connected group of
+  1 or more squares that is symmetric in some way, be it via rotation or reflection. If every
+  nontrivial rotation or reflection of the plane that takes a state to itself leaves exactly 1 of
+  its squares fixed, then that square is its capitol. (So, for example, a 1-by-3 region has no
+  capitol, nor does the “X” pentomino.)</p>
+  <p>The cost of traveling from one square to an orthogonally adjacent square in this nation is
+  equal to the size (i.e. number of squares) of the state you are travelling in, or, if travelling
+  between two states, the lesser of the two states’ sizes. A number in a cell denotes the lowest
+  cost of travelling from the numbered square to any state capitol.</p>
+  <p>After determining the shapes of the states, label each cell with the size of the state it is
+  in. Compute the sum of these values in each row, and submit as your answer the sum of the
+  squares of these row sums (as in the example).</p>
+
+  <h3>What the sandbox checks</h3>
+  <ul>
+    <li><b>States.</b> A state is flagged when it is not connected or has no nontrivial symmetry.
+      Symmetries are tested about the centre of the state's bounding box: ↔ ↕ ↻180, and for a
+      square bounding box also ↻90 ↻270 ⤡ ⤢.</li>
+    <li><b>Capitol.</b> Marked with a dot when every symmetry of the state fixes exactly one
+      square. The States table says which symmetry spoils it otherwise.</li>
+    <li><b>Costs.</b> The cheapest route from every cell to the nearest capitol of a valid state,
+      using the <i>current</i> sizes of the states. Unassigned cells are impassable, so costs are
+      only final once the grid is full. A clue is <span class="chip ok">ok</span> when the cost
+      matches, <span class="chip bad">too cheap</span> when a cheaper route already exists
+      (growing a state can still fix this), and <span class="chip warn">pending</span> when the
+      cost is still higher or no route exists yet.</li>
+    <li><b>Answer.</b> Each cell is labelled with its state's size; the answer is the sum of the
+      squares of the row sums. Unassigned cells count 0 until they are filled.</li>
+  </ul>
+
+  <h3>Shortcuts</h3>
+  <ul>
+    <li><kbd>P</kbd> paint, <kbd>E</kbd> erase, <kbd>X</kbd> probe. Right-click always erases.
+      <kbd>⌥</kbd>-click picks up the state under the cursor.</li>
+    <li><kbd>N</kbd> new state, <kbd>[</kbd> / <kbd>]</kbd> previous / next state.</li>
+    <li><kbd>⌘Z</kbd> undo, <kbd>⇧⌘Z</kbd> redo. One drag is one undo step.</li>
+    <li><kbd>S</kbd> toggle size labels, <kbd>C</kbd> toggle cost labels.</li>
+  </ul>
+
+  <details><summary>Puzzle image</summary><img src="its-a-metric-too.png" alt="puzzle grid"></details>
+  <div style="text-align:right;margin-top:12px"><button onclick="this.closest('dialog').close()">Close</button></div>
+</dialog>
+
+<dialog id="ioDlg">
+  <h3>Export / Import</h3>
+  <p class="hint">The JSON block restores the whole board. Below it is the same grid as a Python
+  list of state ids (0 = unassigned), ready to paste into the notebook.</p>
+  <textarea id="ioText" spellcheck="false"></textarea>
+  <div style="display:flex;gap:8px;margin-top:8px">
+    <button id="copyBtn">Copy</button>
+    <button id="importBtn">Import JSON from text</button>
+    <span class="grow"></span>
+    <button onclick="this.closest('dialog').close()">Close</button>
+  </div>
+</dialog>
+
+<dialog id="slotsDlg">
+  <h3>Save slots</h3>
+  <div style="display:flex;gap:8px;margin-bottom:10px">
+    <input id="slotName" placeholder="slot name" style="flex:1">
+    <button id="slotSaveBtn">Save current board</button>
+  </div>
+  <table id="slotsTable"></table>
+  <div style="text-align:right;margin-top:12px"><button onclick="this.closest('dialog').close()">Close</button></div>
+</dialog>
+
+<script>
+'use strict';
+
+/* =====================================================================
+   1. Puzzle data
+   ===================================================================== */
+
+// Each clue is [row, column, cost]; rows and columns are 0-indexed from the top-left.
+const PUZZLES = {
+  main: {
+    label: '11×11 puzzle',
+    size: 11,
+    clues: [
+      [0, 1, 8], [0, 2, 4], [0, 5, 11], [0, 9, 5],
+      [1, 7, 11],
+      [2, 2, 7], [2, 5, 1], [2, 10, 14],
+      [3, 0, 28], [3, 3, 51], [3, 6, 1], [3, 8, 6],
+      [4, 1, 22], [4, 8, 4], [4, 10, 1],
+      [5, 3, 15], [5, 5, 10], [5, 7, 0],
+      [6, 0, 11], [6, 2, 11], [6, 9, 9],
+      [7, 2, 17], [7, 4, 14], [7, 7, 10], [7, 10, 13],
+      [8, 0, 30], [8, 5, 6], [8, 8, 45],
+      [9, 3, 10],
+      [10, 1, 26], [10, 5, 0], [10, 8, 77], [10, 9, 61],
+    ],
+    knownAnswer: null,
+  },
+  example: {
+    label: '5×5 example',
+    size: 5,
+    clues: [
+      [0, 0, 12], [0, 4, 17],
+      [1, 0, 8], [1, 2, 6], [1, 3, 3],
+      [3, 1, 7], [3, 2, 6], [3, 4, 10],
+      [4, 0, 25], [4, 4, 0],
+    ],
+    knownAnswer: 8045,
+  },
+};
+
+// The solved example from the puzzle image, one letter per cell. Used to check the checker.
+const EXAMPLE_SOLUTION_ROWS = [
+  'PBBRR',
+  'PBBGR',
+  'PPGGR',
+  'RPPPR',
+  'RRRRR',
+];
+
+const COLUMN_LETTERS = 'ABCDEFGHIJK';
+
+// Tints for states. A state keeps the tint matching its id, so colours never shuffle.
+const TINTS = [
+  '#fecaca', '#fed7aa', '#fde68a', '#d9f99d', '#a7f3d0', '#a5f3fc', '#bfdbfe', '#c7d2fe',
+  '#e9d5ff', '#fbcfe8', '#f5d0a9', '#d6d3d1', '#bbf7d0', '#99f6e4', '#bae6fd', '#ddd6fe',
+  '#f5d0fe', '#fecdd3', '#e5e7eb', '#fef3c7', '#c4b5fd', '#fda4af', '#86efac', '#7dd3fc',
+];
+
+const STORAGE_PREFIX = 'metric-too:';
+const SLOTS_KEY = STORAGE_PREFIX + 'slots';
+
+/* =====================================================================
+   2. Grid helpers
+   ===================================================================== */
+
+function rowOf(cell, size) { return Math.floor(cell / size); }
+function colOf(cell, size) { return cell % size; }
+function cellAt(row, col, size) { return row * size + col; }
+
+/** Returns a chess-style name for a cell, e.g. "D4" for column D (4th), row 4 from the top. */
+function cellName(cell, size) {
+  return COLUMN_LETTERS[colOf(cell, size)] + (rowOf(cell, size) + 1);
+}
+
+/** Returns the orthogonal neighbours of a cell that lie inside the grid. */
+function neighboursOf(cell, size) {
+  const row = rowOf(cell, size);
+  const col = colOf(cell, size);
+  const neighbours = [];
+  if (row > 0) neighbours.push(cellAt(row - 1, col, size));
+  if (row < size - 1) neighbours.push(cellAt(row + 1, col, size));
+  if (col > 0) neighbours.push(cellAt(row, col - 1, size));
+  if (col < size - 1) neighbours.push(cellAt(row, col + 1, size));
+  return neighbours;
+}
+
+/** Returns a deep copy of a plain-data object (arrays, numbers, strings, nested objects). */
+function clone(value) { return JSON.parse(JSON.stringify(value)); }
+
+/* =====================================================================
+   3. Board state
+   ===================================================================== */
+
+/** Returns an empty board for the given puzzle. */
+function freshState(puzzleKey) {
+  const size = PUZZLES[puzzleKey].size;
+  return {
+    puzzle: puzzleKey,
+    size: size,
+    cells: new Array(size * size).fill(-1),   // state id per cell; -1 means unassigned
+    states: [],                               // list of { id }
+    nextId: 1,
+    selected: null,                           // id of the state currently being painted
+    notes: '',
+    showSizes: true,
+    showCosts: false,
+  };
+}
+
+let S = freshState('main');     // the live board
+let A = null;                   // analysis of S, rebuilt by refresh()
+let mode = 'paint';             // 'paint' | 'erase' | 'probe'
+let probeCell = null;           // cell whose cheapest route is drawn, or null
+let undoStack = [];
+let redoStack = [];
+
+function tintOf(stateId) { return TINTS[(stateId - 1) % TINTS.length]; }
+function stateLabel(stateId) { return 'S' + stateId; }
+
+/* =====================================================================
+   4. Analysis: connectivity, symmetry, capitols, travel costs
+   ===================================================================== */
+
+// Candidate symmetries, written in coordinates relative to the state's bounding box.
+// (u, v) is (row, column) measured from the box's top-left corner; height and width are
+// the largest u and v (so a single row has height 0). Quarter turns and the diagonal
+// mirrors can only map a box onto itself when the box is square.
+const TRANSFORMS = [
+  { symbol: '↻180', name: 'half-turn rotation',          needsSquareBox: false, map: (u, v, h, w) => [h - u, w - v] },
+  { symbol: '↔',    name: 'left-right mirror',           needsSquareBox: false, map: (u, v, h, w) => [u, w - v] },
+  { symbol: '↕',    name: 'top-bottom mirror',           needsSquareBox: false, map: (u, v, h, w) => [h - u, v] },
+  { symbol: '↻90',  name: 'quarter-turn rotation',       needsSquareBox: true,  map: (u, v, h, w) => [v, h - u] },
+  { symbol: '↻270', name: 'three-quarter-turn rotation', needsSquareBox: true,  map: (u, v, h, w) => [w - v, u] },
+  { symbol: '⤡',    name: 'main-diagonal mirror',        needsSquareBox: true,  map: (u, v, h, w) => [v, u] },
+  { symbol: '⤢',    name: 'anti-diagonal mirror',        needsSquareBox: true,  map: (u, v, h, w) => [h - v, w - u] },
+];
+
+/** Returns a Map from state id to the list of cells painted with that state. */
+function cellsOfEachState(state) {
+  const groups = new Map();
+  for (const stateInfo of state.states) groups.set(stateInfo.id, []);
+  for (let cell = 0; cell < state.cells.length; cell++) {
+    const stateId = state.cells[cell];
+    if (stateId === -1) continue;
+    if (!groups.has(stateId)) groups.set(stateId, []);
+    groups.get(stateId).push(cell);
+  }
+  return groups;
+}
+
+/** Returns true when the cells form one orthogonally connected group. */
+function isConnected(cellList, size) {
+  if (cellList.length === 0) return false;
+  const members = new Set(cellList);
+  const seen = new Set([cellList[0]]);
+  const frontier = [cellList[0]];
+  while (frontier.length > 0) {
+    const current = frontier.pop();
+    for (const neighbour of neighboursOf(current, size)) {
+      if (members.has(neighbour) && !seen.has(neighbour)) {
+        seen.add(neighbour);
+        frontier.push(neighbour);
+      }
+    }
+  }
+  return seen.size === cellList.length;
+}
+
+/**
+ * Returns { symmetries, capitol, note } for a set of cells.
+ * symmetries lists every nontrivial transform that maps the shape onto itself, each with the
+ * cells it leaves fixed; capitol is the single fixed cell when every symmetry fixes exactly
+ * one, otherwise null and note explains why.
+ */
+function symmetryReport(cellList, size) {
+  const members = new Set(cellList);
+  let minRow = Infinity, maxRow = -Infinity, minCol = Infinity, maxCol = -Infinity;
+  for (const cell of cellList) {
+    minRow = Math.min(minRow, rowOf(cell, size));
+    maxRow = Math.max(maxRow, rowOf(cell, size));
+    minCol = Math.min(minCol, colOf(cell, size));
+    maxCol = Math.max(maxCol, colOf(cell, size));
+  }
+  const height = maxRow - minRow;
+  const width = maxCol - minCol;
+
+  const symmetries = [];
+  for (const transform of TRANSFORMS) {
+    if (transform.needsSquareBox && height !== width) continue;
+    let mapsOntoItself = true;
+    const fixedCells = [];
+    for (const cell of cellList) {
+      const u = rowOf(cell, size) - minRow;
+      const v = colOf(cell, size) - minCol;
+      const [u2, v2] = transform.map(u, v, height, width);
+      const image = cellAt(minRow + u2, minCol + v2, size);
+      if (!members.has(image)) { mapsOntoItself = false; break; }
+      if (u2 === u && v2 === v) fixedCells.push(cell);
+    }
+    if (mapsOntoItself) symmetries.push({ symbol: transform.symbol, name: transform.name, fixedCells: fixedCells });
+  }
+
+  if (symmetries.length === 0) {
+    return { symmetries: symmetries, capitol: null, note: 'no symmetry' };
+  }
+  const spoiler = symmetries.find(symmetry => symmetry.fixedCells.length !== 1);
+  if (spoiler !== undefined) {
+    const count = spoiler.fixedCells.length;
+    return { symmetries: symmetries, capitol: null,
+             note: spoiler.symbol + ' fixes ' + count + (count === 1 ? ' square' : ' squares') };
+  }
+  // Every symmetry fixes exactly one square. They all share the shape's centre, so it is the
+  // same square each time; the check below only guards against a mistake in TRANSFORMS.
+  const capitol = symmetries[0].fixedCells[0];
+  const allAgree = symmetries.every(symmetry => symmetry.fixedCells[0] === capitol);
+  if (!allAgree) return { symmetries: symmetries, capitol: null, note: 'symmetries fix different squares' };
+  return { symmetries: symmetries, capitol: capitol, note: '' };
+}
+
+/**
+ * Returns the cost of one step between two adjacent cells, or null when either cell is
+ * unassigned (an unassigned cell is treated as impassable).
+ */
+function stepCost(state, sizeOfState, fromCell, toCell) {
+  const fromState = state.cells[fromCell];
+  const toState = state.cells[toCell];
+  if (fromState === -1 || toState === -1) return null;
+  if (fromState === toState) return sizeOfState.get(fromState);
+  return Math.min(sizeOfState.get(fromState), sizeOfState.get(toState));
+}
+
+/**
+ * Returns { dist, next }: for every cell, the cheapest cost to reach any capitol (Infinity
+ * when unreachable) and the neighbour that is one step along that cheapest route.
+ * This is Dijkstra's algorithm started from all capitols at once; the grid is tiny, so the
+ * "pick the closest unfinished cell" step is a plain scan rather than a heap.
+ */
+function distancesToCapitols(state, sizeOfState, capitols) {
+  const cellCount = state.cells.length;
+  const dist = new Array(cellCount).fill(Infinity);
+  const next = new Array(cellCount).fill(-1);
+  const finished = new Array(cellCount).fill(false);
+  for (const capitol of capitols) dist[capitol] = 0;
+
+  while (true) {
+    let current = -1;
+    for (let cell = 0; cell < cellCount; cell++) {
+      if (finished[cell] || dist[cell] === Infinity) continue;
+      if (current === -1 || dist[cell] < dist[current]) current = cell;
+    }
+    if (current === -1) break;
+    finished[current] = true;
+    for (const neighbour of neighboursOf(current, state.size)) {
+      const cost = stepCost(state, sizeOfState, current, neighbour);
+      if (cost === null) continue;
+      if (dist[current] + cost < dist[neighbour]) {
+        dist[neighbour] = dist[current] + cost;
+        next[neighbour] = current;
+      }
+    }
+  }
+  return { dist: dist, next: next };
+}
+
+/** Returns a full report on the board: per-state checks, capitols, costs, clues, answer. */
+function analyze(state) {
+  const size = state.size;
+  const groups = cellsOfEachState(state);
+
+  const infoById = new Map();
+  for (const [stateId, cellList] of groups) {
+    const info = {
+      id: stateId, cells: cellList, size: cellList.length,
+      connected: false, symmetries: [], capitol: null, capitolNote: '', problems: [],
+    };
+    if (cellList.length === 0) {
+      info.problems.push('empty');
+    } else {
+      info.connected = isConnected(cellList, size);
+      if (!info.connected) info.problems.push('not connected');
+      const report = symmetryReport(cellList, size);
+      info.symmetries = report.symmetries;
+      info.capitol = report.capitol;
+      info.capitolNote = report.note;
+      if (report.symmetries.length === 0) info.problems.push('no symmetry');
+    }
+    infoById.set(stateId, info);
+  }
+
+  const sizeOfState = new Map();
+  for (const info of infoById.values()) sizeOfState.set(info.id, info.size);
+
+  // Only a legal state (connected and symmetric) contributes a capitol.
+  const capitols = [];
+  for (const info of infoById.values()) {
+    if (info.capitol !== null && info.problems.length === 0) capitols.push(info.capitol);
+  }
+  const { dist, next } = distancesToCapitols(state, sizeOfState, capitols);
+
+  const clues = PUZZLES[state.puzzle].clues.map(([row, col, value]) => {
+    const cell = cellAt(row, col, size);
+    const found = dist[cell];
+    let status;
+    if (found === value) status = 'ok';
+    else if (found < value) status = 'cheap';
+    else status = 'pending';
+    return { cell: cell, value: value, found: found, status: status };
+  });
+
+  const rowSums = [];
+  const rowComplete = [];
+  let unassignedCount = 0;
+  for (let row = 0; row < size; row++) {
+    let sum = 0;
+    let complete = true;
+    for (let col = 0; col < size; col++) {
+      const stateId = state.cells[cellAt(row, col, size)];
+      if (stateId === -1) { unassignedCount++; complete = false; }
+      else sum += sizeOfState.get(stateId);
+    }
+    rowSums.push(sum);
+    rowComplete.push(complete);
+  }
+  const answer = rowSums.reduce((total, rowSum) => total + rowSum * rowSum, 0);
+
+  const invalidStates = [...infoById.values()].filter(info => info.size > 0 && info.problems.length > 0);
+  const mismatchedClues = clues.filter(clue => clue.status !== 'ok');
+
+  return {
+    infoById: infoById, capitols: capitols, dist: dist, next: next, clues: clues,
+    rowSums: rowSums, rowComplete: rowComplete, answer: answer,
+    unassignedCount: unassignedCount, invalidStates: invalidStates, mismatchedClues: mismatchedClues,
+    solved: unassignedCount === 0 && invalidStates.length === 0 && mismatchedClues.length === 0,
+  };
+}
+
+/** Returns the list of cells on the cheapest route from a cell to its nearest capitol, or [] if none. */
+function routeToCapitol(cell) {
+  if (A.dist[cell] === Infinity) return [];
+  const route = [cell];
+  let current = cell;
+  while (A.next[current] !== -1) {
+    current = A.next[current];
+    route.push(current);
+  }
+  return route;
+}
+
+/* =====================================================================
+   5. Drawing the board
+   ===================================================================== */
+
+const CELL = 60;      // pixels per cell
+const MARGIN = 26;    // room for the row and column labels
+const board = document.getElementById('board');
+
+function cellX(cell) { return MARGIN + colOf(cell, S.size) * CELL; }
+function cellY(cell) { return MARGIN + rowOf(cell, S.size) * CELL; }
+
+function drawBoard() {
+  const size = S.size;
+  const pixels = MARGIN * 2 + CELL * size;
+  board.setAttribute('width', pixels);
+  board.setAttribute('height', pixels);
+  board.setAttribute('viewBox', '0 0 ' + pixels + ' ' + pixels);
+
+  const parts = [];
+  parts.push('<defs><pattern id="hatch" width="7" height="7" patternUnits="userSpaceOnUse" patternTransform="rotate(45)">' +
+             '<rect width="7" height="7" fill="#ffffff"/><rect width="2" height="7" fill="#e5e7eb"/></pattern></defs>');
+
+  // Row and column labels around the edge.
+  for (let col = 0; col < size; col++) {
+    const x = MARGIN + col * CELL + CELL / 2;
+    parts.push('<text x="' + x + '" y="' + (MARGIN - 8) + '" text-anchor="middle" font-size="11" fill="#6b7280">' + COLUMN_LETTERS[col] + '</text>');
+  }
+  for (let row = 0; row < size; row++) {
+    const y = MARGIN + row * CELL + CELL / 2 + 4;
+    parts.push('<text x="' + (MARGIN - 8) + '" y="' + y + '" text-anchor="end" font-size="11" fill="#6b7280">' + (row + 1) + '</text>');
+  }
+
+  // Cell backgrounds; these are the elements that receive mouse events.
+  for (let cell = 0; cell < size * size; cell++) {
+    const stateId = S.cells[cell];
+    const fill = stateId === -1 ? 'url(#hatch)' : tintOf(stateId);
+    parts.push('<rect class="cellhit" data-cell="' + cell + '" x="' + cellX(cell) + '" y="' + cellY(cell) +
+               '" width="' + CELL + '" height="' + CELL + '" fill="' + fill + '" stroke="#d7dbe0" stroke-width="1"/>');
+  }
+
+  // Outline of the selected state, so it is obvious where the next paint stroke will go.
+  if (S.selected !== null) {
+    for (let cell = 0; cell < size * size; cell++) {
+      if (S.cells[cell] !== S.selected) continue;
+      parts.push('<rect x="' + (cellX(cell) + 2) + '" y="' + (cellY(cell) + 2) + '" width="' + (CELL - 4) + '" height="' + (CELL - 4) +
+                 '" fill="none" stroke="#4338ca" stroke-opacity=".35" stroke-width="2" pointer-events="none"/>');
+    }
+  }
+
+  // Labels inside the cells: clue (large), state size (top-left), cost to capitol (bottom-right).
+  const clueAt = new Map();
+  for (const clue of A.clues) clueAt.set(clue.cell, clue);
+  for (let cell = 0; cell < size * size; cell++) {
+    const x = cellX(cell), y = cellY(cell);
+    const stateId = S.cells[cell];
+    const clue = clueAt.get(cell);
+    if (clue !== undefined) {
+      const colour = clue.status === 'ok' ? '#15803d' : clue.status === 'cheap' ? '#dc2626' : '#1b1f24';
+      parts.push('<text x="' + (x + CELL / 2) + '" y="' + (y + CELL / 2 + 8) + '" text-anchor="middle" font-size="22" font-weight="600" fill="' + colour + '">' + clue.value + '</text>');
+    }
+    if (S.showSizes && stateId !== -1) {
+      parts.push('<text x="' + (x + 5) + '" y="' + (y + 13) + '" font-size="10" fill="#6b7280">' + A.infoById.get(stateId).size + '</text>');
+    }
+    if (S.showCosts && stateId !== -1) {
+      const cost = A.dist[cell] === Infinity ? '∞' : A.dist[cell];
+      parts.push('<text x="' + (x + CELL - 5) + '" y="' + (y + CELL - 5) + '" text-anchor="end" font-size="10" fill="#4338ca">' + cost + '</text>');
+    }
+  }
+
+  // Thick borders wherever two neighbouring cells belong to different states.
+  const borderLines = [];
+  for (let cell = 0; cell < size * size; cell++) {
+    const row = rowOf(cell, size), col = colOf(cell, size);
+    const x = cellX(cell), y = cellY(cell);
+    const here = S.cells[cell];
+    const differs = (otherRow, otherCol) => {
+      if (otherRow < 0 || otherRow >= size || otherCol < 0 || otherCol >= size) return true;
+      return S.cells[cellAt(otherRow, otherCol, size)] !== here;
+    };
+    if (differs(row - 1, col)) borderLines.push([x, y, x + CELL, y]);
+    if (differs(row + 1, col)) borderLines.push([x, y + CELL, x + CELL, y + CELL]);
+    if (differs(row, col - 1)) borderLines.push([x, y, x, y + CELL]);
+    if (differs(row, col + 1)) borderLines.push([x + CELL, y, x + CELL, y + CELL]);
+  }
+  for (const [x1, y1, x2, y2] of borderLines) {
+    parts.push('<line x1="' + x1 + '" y1="' + y1 + '" x2="' + x2 + '" y2="' + y2 + '" stroke="#1b1f24" stroke-width="2.5" stroke-linecap="square" pointer-events="none"/>');
+  }
+
+  // Capitol dots, offset to the top-right so they never sit on top of a clue number.
+  for (const info of A.infoById.values()) {
+    if (info.capitol === null) continue;
+    const legal = info.problems.length === 0;
+    parts.push('<circle cx="' + (cellX(info.capitol) + CELL - 10) + '" cy="' + (cellY(info.capitol) + 10) + '" r="5" fill="' +
+               (legal ? '#1b1f24' : '#9ca3af') + '" pointer-events="none"/>');
+  }
+
+  // The cheapest route from the probed cell, with the cost of each step at its midpoint.
+  if (probeCell !== null) {
+    const route = routeToCapitol(probeCell);
+    if (route.length > 1) {
+      const points = route.map(cell => (cellX(cell) + CELL / 2) + ',' + (cellY(cell) + CELL / 2)).join(' ');
+      parts.push('<polyline points="' + points + '" fill="none" stroke="#4338ca" stroke-width="4" stroke-opacity=".75" stroke-linejoin="round" stroke-linecap="round" pointer-events="none"/>');
+      const sizeOfState = new Map();
+      for (const info of A.infoById.values()) sizeOfState.set(info.id, info.size);
+      for (let step = 0; step + 1 < route.length; step++) {
+        const from = route[step], to = route[step + 1];
+        const midX = (cellX(from) + cellX(to)) / 2 + CELL / 2;
+        const midY = (cellY(from) + cellY(to)) / 2 + CELL / 2;
+        parts.push('<rect x="' + (midX - 13) + '" y="' + (midY - 10) + '" width="26" height="20" rx="5" fill="#4338ca" stroke="#fff" stroke-width="1.5" pointer-events="none"/>');
+        parts.push('<text x="' + midX + '" y="' + (midY + 4.5) + '" text-anchor="middle" font-size="12.5" font-weight="700" fill="#fff">' + stepCost(S, sizeOfState, from, to) + '</text>');
+      }
+    }
+    parts.push('<rect x="' + (cellX(probeCell) + 1.5) + '" y="' + (cellY(probeCell) + 1.5) + '" width="' + (CELL - 3) + '" height="' + (CELL - 3) +
+               '" fill="none" stroke="#4338ca" stroke-width="3" pointer-events="none"/>');
+  }
+
+  board.innerHTML = parts.join('');
+}
+
+/* =====================================================================
+   6. Drawing the side panels
+   ===================================================================== */
+
+function escapeHtml(text) {
+  return String(text).replace(/&/g, '&amp;').replace(/</g, '&lt;');
+}
+
+function drawStatesTable() {
+  const rows = [];
+  rows.push('<tr><th>state</th><th>size</th><th>symmetry</th><th>capitol</th><th>status</th><th></th></tr>');
+  for (const stateInfo of S.states) {
+    const info = A.infoById.get(stateInfo.id);
+    const isSelected = stateInfo.id === S.selected;
+    const symmetryText = info.symmetries.map(symmetry => symmetry.symbol).join(' ') || '<span class="mut">—</span>';
+    let capitolText;
+    if (info.capitol !== null) capitolText = cellName(info.capitol, S.size);
+    else if (info.size === 0) capitolText = '<span class="mut">—</span>';
+    else capitolText = '<span class="mut" title="' + escapeHtml(info.capitolNote) + '">none<br><small>' + escapeHtml(info.capitolNote) + '</small></span>';
+    let statusChip;
+    if (info.size === 0) statusChip = '<span class="chip mut">empty</span>';
+    else if (info.problems.length === 0) statusChip = '<span class="chip ok">ok</span>';
+    else statusChip = '<span class="chip bad">' + info.problems.join(', ') + '</span>';
+    rows.push('<tr class="click' + (isSelected ? ' act' : '') + '" data-state="' + stateInfo.id + '">' +
+              '<td><span class="swatch" style="background:' + tintOf(stateInfo.id) + '"></span>' + stateLabel(stateInfo.id) + '</td>' +
+              '<td>' + info.size + '</td><td>' + symmetryText + '</td><td>' + capitolText + '</td><td>' + statusChip + '</td>' +
+              '<td><button class="sm" data-delete="' + stateInfo.id + '" title="unpaint this state">✕</button></td></tr>');
+  }
+  document.getElementById('statesTable').innerHTML = rows.join('');
+  const help = document.getElementById('statesHelp');
+  if (S.states.length === 0) help.textContent = 'Painting a cell creates the first state automatically.';
+  else help.textContent = 'Click a row to paint with that state. ⌥-click a cell to pick up its state.';
+}
+
+function drawAnswerBox() {
+  const parts = [];
+  const sums = A.rowSums.map((sum, row) => '<span class="' + (A.rowComplete[row] ? '' : 'partial') + '" title="row ' + (row + 1) + '">' + sum + '</span>');
+  parts.push('<div class="hint">row sums (dashed = row not fully assigned)</div>');
+  parts.push('<div class="rowsums">' + sums.join('') + '</div>');
+  parts.push('<div class="big">' + A.answer.toLocaleString() + '</div>');
+  parts.push('<div class="hint">sum of the squares of the row sums</div>');
+  const known = PUZZLES[S.puzzle].knownAnswer;
+  if (A.solved) {
+    let line = 'Grid full, every state legal, every clue matched.';
+    if (known !== null) line += A.answer === known ? ' Matches the published ' + known.toLocaleString() + '.' : ' But the published answer is ' + known.toLocaleString() + '!';
+    parts.push('<div class="okc" style="margin-top:6px">' + line + '</div>');
+  } else {
+    const issues = [];
+    if (A.unassignedCount > 0) issues.push(A.unassignedCount + ' unassigned');
+    if (A.invalidStates.length > 0) issues.push(A.invalidStates.length + ' illegal state' + (A.invalidStates.length === 1 ? '' : 's'));
+    if (A.mismatchedClues.length > 0) issues.push(A.mismatchedClues.length + ' clue' + (A.mismatchedClues.length === 1 ? '' : 's') + ' unmatched');
+    parts.push('<div class="mut" style="margin-top:6px">Provisional: ' + issues.join(', ') + '.</div>');
+  }
+  document.getElementById('answerBox').innerHTML = parts.join('');
+}
+
+function drawCluesTable() {
+  const rows = [];
+  rows.push('<tr><th>cell</th><th>clue</th><th>found</th><th>status</th></tr>');
+  for (const clue of A.clues) {
+    const found = clue.found === Infinity ? '<span class="mut">no route</span>' : clue.found;
+    const chip = clue.status === 'ok' ? '<span class="chip ok">ok</span>'
+               : clue.status === 'cheap' ? '<span class="chip bad">too cheap</span>'
+               : '<span class="chip warn">pending</span>';
+    rows.push('<tr class="click' + (clue.cell === probeCell ? ' act' : '') + '" data-clue="' + clue.cell + '">' +
+              '<td class="mono">' + cellName(clue.cell, S.size) + '</td><td>' + clue.value + '</td><td>' + found + '</td><td>' + chip + '</td></tr>');
+  }
+  document.getElementById('cluesTable').innerHTML = rows.join('');
+  const matched = A.clues.length - A.mismatchedClues.length;
+  document.getElementById('clueSummary').textContent = matched + ' / ' + A.clues.length + ' matched';
+}
+
+function drawProbeBox() {
+  const box = document.getElementById('probeBox');
+  if (probeCell === null) {
+    box.className = 'mut';
+    box.textContent = 'Click a cell in Probe mode, or click a clue row, to trace its cheapest route to a capitol.';
+    return;
+  }
+  box.className = '';
+  const stateId = S.cells[probeCell];
+  const where = stateId === -1 ? 'unassigned' : stateLabel(stateId) + ' (size ' + A.infoById.get(stateId).size + ')';
+  const route = routeToCapitol(probeCell);
+  let text = '<b>' + cellName(probeCell, S.size) + '</b> — ' + where + '. ';
+  if (route.length === 0) {
+    text += 'No route to a capitol through assigned cells yet.';
+  } else if (route.length === 1) {
+    text += 'This cell is a capitol, so the cost is 0.';
+  } else {
+    const sizeOfState = new Map();
+    for (const info of A.infoById.values()) sizeOfState.set(info.id, info.size);
+    const steps = [];
+    for (let step = 0; step + 1 < route.length; step++) {
+      steps.push(cellName(route[step + 1], S.size) + ' (+' + stepCost(S, sizeOfState, route[step], route[step + 1]) + ')');
+    }
+    text += 'Cheapest cost <b>' + A.dist[probeCell] + '</b> to the capitol at ' + cellName(route[route.length - 1], S.size) +
+            ': ' + cellName(probeCell, S.size) + ' → ' + steps.join(' → ') + '.';
+  }
+  box.innerHTML = text;
+}
+
+function drawSide() {
+  drawStatesTable();
+  drawAnswerBox();
+  drawCluesTable();
+  drawProbeBox();
+}
+
+function updateChrome() {
+  for (const button of document.querySelectorAll('#puzzleSeg button')) button.classList.toggle('on', button.dataset.puzzle === S.puzzle);
+  for (const button of document.querySelectorAll('#modeSeg button')) button.classList.toggle('on', button.dataset.mode === mode);
+  document.getElementById('undoBtn').disabled = undoStack.length === 0;
+  document.getElementById('redoBtn').disabled = redoStack.length === 0;
+  document.getElementById('showSizes').checked = S.showSizes;
+  document.getElementById('showCosts').checked = S.showCosts;
+  document.getElementById('exampleSolutionBtn').style.display = S.puzzle === 'example' ? '' : 'none';
+  const hints = {
+    paint: 'Paint: click or drag to fill cells with the selected state. Right-click erases. ⌥-click picks up the state under the cursor.',
+    erase: 'Erase: click or drag to clear cells back to unassigned.',
+    probe: 'Probe: click a cell to draw its cheapest route to the nearest capitol. Click it again to clear.',
+  };
+  document.getElementById('modeHint').textContent = hints[mode];
+  const notes = document.getElementById('notes');
+  if (notes.value !== S.notes) notes.value = S.notes;
+}
+
+/** Re-analyses the board, redraws everything, and autosaves. Call after any change to S. */
+function refresh() {
+  A = analyze(S);
+  drawBoard();
+  drawSide();
+  updateChrome();
+  save();
+}
+
+/* =====================================================================
+   7. Editing: undo, states, painting
+   ===================================================================== */
+
+/** Returns the part of S that undo needs to restore. */
+function snapshot() {
+  return clone({ cells: S.cells, states: S.states, nextId: S.nextId, selected: S.selected });
+}
+
+function applySnapshot(snap) {
+  S.cells = snap.cells;
+  S.states = snap.states;
+  S.nextId = snap.nextId;
+  S.selected = snap.selected;
+}
+
+function pushUndo() {
+  undoStack.push(snapshot());
+  if (undoStack.length > 300) undoStack.shift();
+  redoStack = [];
+}
+
+function undo() {
+  if (undoStack.length === 0) return;
+  redoStack.push(snapshot());
+  applySnapshot(undoStack.pop());
+  refresh();
+}
+
+function redo() {
+  if (redoStack.length === 0) return;
+  undoStack.push(snapshot());
+  applySnapshot(redoStack.pop());
+  refresh();
+}
+
+/** Creates a new empty state, selects it, and returns its id. Caller handles undo. */
+function createState() {
+  const id = S.nextId;
+  S.nextId += 1;
+  S.states.push({ id: id });
+  S.selected = id;
+  return id;
+}
+
+function deleteState(stateId) {
+  pushUndo();
+  S.cells = S.cells.map(cellState => cellState === stateId ? -1 : cellState);
+  S.states = S.states.filter(stateInfo => stateInfo.id !== stateId);
+  if (S.selected === stateId) S.selected = S.states.length > 0 ? S.states[S.states.length - 1].id : null;
+  refresh();
+}
+
+function dropEmptyStates() {
+  const used = new Set(S.cells);
+  const empty = S.states.filter(stateInfo => !used.has(stateInfo.id));
+  if (empty.length === 0) { flash('No empty states.'); return; }
+  pushUndo();
+  S.states = S.states.filter(stateInfo => used.has(stateInfo.id));
+  if (S.selected !== null && !used.has(S.selected)) S.selected = S.states.length > 0 ? S.states[S.states.length - 1].id : null;
+  refresh();
+  flash('Dropped ' + empty.length + ' empty state' + (empty.length === 1 ? '' : 's') + '.');
+}
+
+/** Moves the selection to the previous (-1) or next (+1) state in the list. */
+function cycleSelected(direction) {
+  if (S.states.length === 0) return;
+  const position = S.states.findIndex(stateInfo => stateInfo.id === S.selected);
+  const nextPosition = (position + direction + S.states.length) % S.states.length;
+  S.selected = S.states[nextPosition].id;
+  refresh();
+}
+
+// A stroke is one press-drag-release of the mouse. It is a single undo step.
+let strokeActive = false;
+let strokeTarget = -1;          // the state id being painted, or -1 when erasing
+let strokeChanged = false;
+let strokeLastCell = null;      // the previous cell the pointer was over during this stroke
+
+function beginStroke(cell, erasing) {
+  if (!erasing && S.selected === null) createState();
+  pushUndo();
+  strokeActive = true;
+  strokeTarget = erasing ? -1 : S.selected;
+  strokeChanged = false;
+  strokeLastCell = null;
+  continueStroke(cell);
+}
+
+/**
+ * Returns the cells on a straight line from one cell to another, excluding the start.
+ * A fast drag can jump several cells between two mouse events, so the stroke fills in
+ * the cells it must have crossed rather than leaving gaps.
+ */
+function cellsBetween(fromCell, toCell) {
+  const fromRow = rowOf(fromCell, S.size), fromCol = colOf(fromCell, S.size);
+  const toRow = rowOf(toCell, S.size), toCol = colOf(toCell, S.size);
+  const steps = Math.max(Math.abs(toRow - fromRow), Math.abs(toCol - fromCol));
+  const cells = [];
+  for (let step = 1; step <= steps; step++) {
+    const row = Math.round(fromRow + (toRow - fromRow) * step / steps);
+    const col = Math.round(fromCol + (toCol - fromCol) * step / steps);
+    cells.push(cellAt(row, col, S.size));
+  }
+  return cells;
+}
+
+function continueStroke(cell) {
+  const cellsToPaint = strokeLastCell === null ? [cell] : cellsBetween(strokeLastCell, cell);
+  strokeLastCell = cell;
+  let changedNow = false;
+  for (const target of cellsToPaint) {
+    if (S.cells[target] === strokeTarget) continue;
+    S.cells[target] = strokeTarget;
+    changedNow = true;
+  }
+  if (!changedNow) return;
+  strokeChanged = true;
+  refresh();
+}
+
+function endStroke() {
+  if (!strokeActive) return;
+  strokeActive = false;
+  // A stroke that changed nothing should not leave an empty undo step behind.
+  if (!strokeChanged) undoStack.pop();
+  updateChrome();
+}
+
+/** Returns the cell under a mouse event, or null when the pointer is off the grid. */
+function cellFromEvent(event) {
+  const hit = event.target.closest('[data-cell]');
+  if (hit === null) return null;
+  return Number(hit.dataset.cell);
+}
+
+board.addEventListener('mousedown', event => {
+  const cell = cellFromEvent(event);
+  if (cell === null) return;
+  event.preventDefault();
+  if (mode === 'probe') {
+    probeCell = probeCell === cell ? null : cell;
+    refresh();
+    return;
+  }
+  if (event.altKey) {
+    if (S.cells[cell] !== -1) { S.selected = S.cells[cell]; refresh(); }
+    return;
+  }
+  const erasing = mode === 'erase' || event.button === 2;
+  beginStroke(cell, erasing);
+});
+
+// mousemove rather than mouseover: the board is redrawn during a stroke, and a redraw under a
+// stationary pointer does not fire mouseover, but any further movement always fires mousemove.
+board.addEventListener('mousemove', event => {
+  if (!strokeActive) return;
+  const cell = cellFromEvent(event);
+  if (cell !== null) continueStroke(cell);
+});
+
+window.addEventListener('mouseup', endStroke);
+board.addEventListener('contextmenu', event => event.preventDefault());
+
+// Hover tooltip with the cell's name, state, and cost.
+const tip = document.getElementById('tip');
+board.addEventListener('mousemove', event => {
+  const cell = cellFromEvent(event);
+  if (cell === null) { tip.style.display = 'none'; return; }
+  const stateId = S.cells[cell];
+  let text = cellName(cell, S.size);
+  if (stateId === -1) {
+    text += ' · unassigned';
+  } else {
+    const info = A.infoById.get(stateId);
+    text += ' · ' + stateLabel(stateId) + ' size ' + info.size;
+    text += ' · cost ' + (A.dist[cell] === Infinity ? '∞' : A.dist[cell]);
+  }
+  tip.textContent = text;
+  tip.style.display = 'block';
+  tip.style.left = (event.clientX + 14) + 'px';
+  tip.style.top = (event.clientY + 14) + 'px';
+});
+board.addEventListener('mouseleave', () => { tip.style.display = 'none'; });
+
+/* =====================================================================
+   8. Side-panel and toolbar events
+   ===================================================================== */
+
+document.getElementById('statesTable').addEventListener('click', event => {
+  const deleteButton = event.target.closest('[data-delete]');
+  if (deleteButton !== null) { deleteState(Number(deleteButton.dataset.delete)); return; }
+  const row = event.target.closest('[data-state]');
+  if (row !== null) { S.selected = Number(row.dataset.state); refresh(); }
+});
+
+document.getElementById('cluesTable').addEventListener('click', event => {
+  const row = event.target.closest('[data-clue]');
+  if (row === null) return;
+  const cell = Number(row.dataset.clue);
+  probeCell = probeCell === cell ? null : cell;
+  refresh();
+});
+
+document.getElementById('newStateBtn').addEventListener('click', () => { pushUndo(); createState(); refresh(); });
+document.getElementById('dropEmptyBtn').addEventListener('click', dropEmptyStates);
+document.getElementById('undoBtn').addEventListener('click', undo);
+document.getElementById('redoBtn').addEventListener('click', redo);
+document.getElementById('showSizes').addEventListener('change', event => { S.showSizes = event.target.checked; refresh(); });
+document.getElementById('showCosts').addEventListener('change', event => { S.showCosts = event.target.checked; refresh(); });
+document.getElementById('notes').addEventListener('input', event => { S.notes = event.target.value; save(); });
+document.getElementById('rulesBtn').addEventListener('click', () => document.getElementById('rulesDlg').showModal());
+
+for (const button of document.querySelectorAll('#modeSeg button')) {
+  button.addEventListener('click', () => { mode = button.dataset.mode; updateChrome(); });
+}
+for (const button of document.querySelectorAll('#puzzleSeg button')) {
+  button.addEventListener('click', () => switchPuzzle(button.dataset.puzzle));
+}
+
+// Reset asks for a second click within a few seconds instead of a blocking confirm().
+let resetArmedUntil = 0;
+document.getElementById('resetBtn').addEventListener('click', event => {
+  const now = Date.now();
+  if (now > resetArmedUntil) {
+    resetArmedUntil = now + 3000;
+    event.target.textContent = 'Really reset?';
+    event.target.classList.add('danger');
+    setTimeout(() => { event.target.textContent = 'Reset'; event.target.classList.remove('danger'); }, 3000);
+    return;
+  }
+  resetArmedUntil = 0;
+  event.target.textContent = 'Reset';
+  event.target.classList.remove('danger');
+  pushUndo();
+  const notes = S.notes;
+  S = freshState(S.puzzle);
+  S.notes = notes;
+  probeCell = null;
+  refresh();
+  flash('Board cleared (undo is available).');
+});
+
+document.getElementById('exampleSolutionBtn').addEventListener('click', () => {
+  if (S.puzzle !== 'example') return;
+  pushUndo();
+  const fresh = freshState('example');
+  fresh.notes = S.notes;
+  const idOfLetter = new Map();
+  for (let row = 0; row < fresh.size; row++) {
+    for (let col = 0; col < fresh.size; col++) {
+      const letter = EXAMPLE_SOLUTION_ROWS[row][col];
+      if (!idOfLetter.has(letter)) {
+        idOfLetter.set(letter, fresh.nextId);
+        fresh.states.push({ id: fresh.nextId });
+        fresh.nextId += 1;
+      }
+      fresh.cells[cellAt(row, col, fresh.size)] = idOfLetter.get(letter);
+    }
+  }
+  fresh.selected = fresh.states[0].id;
+  S = fresh;
+  probeCell = null;
+  refresh();
+  flash('Loaded the published example solution.');
+});
+
+/** Keyboard shortcuts; ignored while typing in a text box or when a dialog is open. */
+window.addEventListener('keydown', event => {
+  const tag = event.target.tagName;
+  if (tag === 'INPUT' || tag === 'TEXTAREA') return;
+  if (document.querySelector('dialog[open]') !== null) return;
+  const modifier = event.metaKey || event.ctrlKey;
+  if (modifier && event.key.toLowerCase() === 'z') {
+    event.preventDefault();
+    if (event.shiftKey) redo(); else undo();
+    return;
+  }
+  if (modifier) return;
+  switch (event.key.toLowerCase()) {
+    case 'p': mode = 'paint'; updateChrome(); break;
+    case 'e': mode = 'erase'; updateChrome(); break;
+    case 'x': mode = 'probe'; updateChrome(); break;
+    case 'n': pushUndo(); createState(); refresh(); break;
+    case '[': cycleSelected(-1); break;
+    case ']': cycleSelected(1); break;
+    case 's': S.showSizes = !S.showSizes; refresh(); break;
+    case 'c': S.showCosts = !S.showCosts; refresh(); break;
+    case 'escape': probeCell = null; refresh(); break;
+  }
+});
+
+/* =====================================================================
+   9. Persistence: autosave, puzzle switching, slots, export / import
+   ===================================================================== */
+
+function storageKey(puzzleKey) { return STORAGE_PREFIX + puzzleKey; }
+
+function save() {
+  try { localStorage.setItem(storageKey(S.puzzle), JSON.stringify(S)); } catch (_) { /* storage unavailable */ }
+}
+
+/** Returns the saved board for a puzzle, or a fresh one when nothing is saved. */
+function loadOrFresh(puzzleKey) {
+  try {
+    const raw = localStorage.getItem(storageKey(puzzleKey));
+    if (raw !== null) {
+      const saved = JSON.parse(raw);
+      if (saved.puzzle === puzzleKey && saved.size === PUZZLES[puzzleKey].size) return saved;
+    }
+  } catch (_) { /* fall through to a fresh board */ }
+  return freshState(puzzleKey);
+}
+
+function switchPuzzle(puzzleKey) {
+  if (puzzleKey === S.puzzle) return;
+  save();
+  S = loadOrFresh(puzzleKey);
+  undoStack = [];
+  redoStack = [];
+  probeCell = null;
+  refresh();
+}
+
+/** Returns true when a board object looks like something this page produced. */
+function looksLikeBoard(candidate) {
+  return candidate !== null && typeof candidate === 'object' &&
+         PUZZLES[candidate.puzzle] !== undefined &&
+         Array.isArray(candidate.cells) && candidate.cells.length === PUZZLES[candidate.puzzle].size ** 2 &&
+         Array.isArray(candidate.states);
+}
+
+function adoptBoard(candidate) {
+  const base = freshState(candidate.puzzle);
+  S = Object.assign(base, candidate);
+  undoStack = [];
+  redoStack = [];
+  probeCell = null;
+  refresh();
+}
+
+// --- slots ---
+function readSlots() {
+  try { return JSON.parse(localStorage.getItem(SLOTS_KEY) || '{}'); } catch (_) { return {}; }
+}
+function writeSlots(slots) {
+  try { localStorage.setItem(SLOTS_KEY, JSON.stringify(slots)); } catch (_) { flash('Could not save: storage unavailable.'); }
+}
+
+function drawSlotsTable() {
+  const slots = readSlots();
+  const names = Object.keys(slots).sort((a, b) => slots[b].savedAt - slots[a].savedAt);
+  const rows = [];
+  if (names.length === 0) rows.push('<tr><td class="mut">No slots yet.</td></tr>');
+  for (const name of names) {
+    const slot = slots[name];
+    const when = new Date(slot.savedAt).toLocaleString();
+    const assigned = slot.board.cells.filter(cellState => cellState !== -1).length;
+    rows.push('<tr><td>' + escapeHtml(name) + '</td><td class="mut">' + PUZZLES[slot.board.puzzle].label + ', ' + assigned + ' cells</td>' +
+              '<td class="mut">' + when + '</td>' +
+              '<td style="text-align:right"><button class="sm" data-slot-load="' + escapeHtml(name) + '">Load</button> ' +
+              '<button class="sm danger" data-slot-delete="' + escapeHtml(name) + '">Delete</button></td></tr>');
+  }
+  document.getElementById('slotsTable').innerHTML = rows.join('');
+}
+
+document.getElementById('slotsBtn').addEventListener('click', () => { drawSlotsTable(); document.getElementById('slotsDlg').showModal(); });
+document.getElementById('slotSaveBtn').addEventListener('click', () => {
+  const input = document.getElementById('slotName');
+  const name = input.value.trim() || new Date().toLocaleString();
+  const slots = readSlots();
+  slots[name] = { savedAt: Date.now(), board: clone(S) };
+  writeSlots(slots);
+  input.value = '';
+  drawSlotsTable();
+});
+document.getElementById('slotsTable').addEventListener('click', event => {
+  const load = event.target.closest('[data-slot-load]');
+  if (load !== null) {
+    const slot = readSlots()[load.dataset.slotLoad];
+    if (slot !== undefined && looksLikeBoard(slot.board)) {
+      save();                             // keep the board being replaced in its own autosave
+      adoptBoard(slot.board);
+      document.getElementById('slotsDlg').close();
+      flash('Loaded slot “' + load.dataset.slotLoad + '”.');
+    }
+    return;
+  }
+  const remove = event.target.closest('[data-slot-delete]');
+  if (remove !== null) {
+    const slots = readSlots();
+    delete slots[remove.dataset.slotDelete];
+    writeSlots(slots);
+    drawSlotsTable();
+  }
+});
+
+// --- export / import ---
+const PYTHON_SEPARATOR = '# ---- python (state id per cell, 0 = unassigned) ----';
+
+/** Returns the export text: the board as JSON, then the grid as a Python list literal. */
+function exportText() {
+  const lines = [];
+  for (let row = 0; row < S.size; row++) {
+    const ids = [];
+    for (let col = 0; col < S.size; col++) {
+      const stateId = S.cells[cellAt(row, col, S.size)];
+      ids.push(String(stateId === -1 ? 0 : stateId).padStart(2, ' '));
+    }
+    lines.push('    [' + ids.join(', ') + '],');
+  }
+  return JSON.stringify(S) + '\n\n' + PYTHON_SEPARATOR + '\nSTATE_GRID = [\n' + lines.join('\n') + '\n]\n';
+}
+
+document.getElementById('ioBtn').addEventListener('click', () => {
+  document.getElementById('ioText').value = exportText();
+  document.getElementById('ioDlg').showModal();
+});
+document.getElementById('copyBtn').addEventListener('click', () => {
+  const area = document.getElementById('ioText');
+  area.select();
+  navigator.clipboard.writeText(area.value).then(() => flash('Copied.'), () => document.execCommand('copy'));
+});
+document.getElementById('importBtn').addEventListener('click', () => {
+  const text = document.getElementById('ioText').value;
+  const jsonPart = text.split(PYTHON_SEPARATOR)[0].trim();
+  let candidate;
+  try { candidate = JSON.parse(jsonPart); } catch (_) { flash('Import failed: the text before the python block is not valid JSON.'); return; }
+  if (!looksLikeBoard(candidate)) { flash('Import failed: that JSON is not a board from this page.'); return; }
+  save();
+  adoptBoard(candidate);
+  document.getElementById('ioDlg').close();
+  flash('Imported.');
+});
+
+// --- flash messages ---
+let flashTimer = null;
+function flash(message) {
+  const strip = document.getElementById('flash');
+  strip.textContent = message;
+  strip.classList.add('show');
+  clearTimeout(flashTimer);
+  flashTimer = setTimeout(() => strip.classList.remove('show'), 2200);
+}
+
+/* =====================================================================
+   10. Start-up
+   ===================================================================== */
+
+try {
+  const probeKey = STORAGE_PREFIX + 'probe';
+  localStorage.setItem(probeKey, '1');
+  localStorage.removeItem(probeKey);
+} catch (_) {
+  document.getElementById('storeWarn').classList.add('show');
+}
+
+S = loadOrFresh('main');
+refresh();
+</script>
+</body>
+</html>
