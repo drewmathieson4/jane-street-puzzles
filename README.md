@@ -5,6 +5,7 @@ One directory per puzzle, named `YYYY-MM`, grouped inside a `YYYY/` directory pe
 
 | Puzzle | Directory | Solution |
 |---|---|---|
+| [Pressure Points](https://www.janestreet.com/puzzles/current-puzzle/) (November 2026) | [`2026/2026-11/`](2026/2026-11/) | [**solved — Antwerpsche Diamantkring**](2026/2026-11/pressure-points.ipynb) |
 | [It's a Metric, Too](https://www.janestreet.com/puzzles/current-puzzle/) (October 2026) | [`2026/2026-10/`](2026/2026-10/) | [in progress — sandbox](2026/2026-10/metric-too-sandbox.html) |
 | [Hint Singles](https://www.janestreet.com/puzzles/hint-singles-index/) (September 2026) | [`2026/2026-09/`](2026/2026-09/) | [**submitted — The Beatless**](2026/2026-09/hint-singles.ipynb) |
 | [Andy's Afternoon Amble](https://www.janestreet.com/puzzles/andys-afternoon-amble-index/) (August 2026) | [`2026/2026-08/`](2026/2026-08/) | [**solved &mdash; 11/20**](2026/2026-08/andys-afternoon-amble.ipynb) |
